@@ -14,6 +14,7 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 
 namespace playground {
 
@@ -28,6 +29,14 @@ Window::~Window() {
 }
 
 bool Window::ShouldClose() { return glfwWindowShouldClose(window_); }
+
+void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {
+  if (glfwCreateWindowSurface(instance, window_, nullptr, surface) !=
+      VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error::GLFW: Failed to create window surface -----");
+  }
+}
 
 void Window::InitWindow() {
   glfwInit();
