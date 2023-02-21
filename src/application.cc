@@ -10,6 +10,9 @@
  */
 #include "application.h"
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 #include "config.h"
 #include "window.h"
 
@@ -17,6 +20,10 @@ namespace playground {
 
 Application::Application(const Config& config) : window_{Window(config)} {}
 
-void Application::Run() {}
+void Application::Run() {
+  while (!window_.ShouldClose()) {
+    glfwPollEvents();
+  }
+}
 
 }  // namespace playground
