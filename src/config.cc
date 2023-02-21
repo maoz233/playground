@@ -12,10 +12,21 @@
 
 namespace playground {
 
-Config::Config() : width{WIDTH}, height{HEIGHT}, title{TITLE} {}
+Config::Config()
+    : width{WIDTH},
+      height{HEIGHT},
+      title{TITLE},
+      vert_shader_filepath(VERT_SHADER_FILEPATH),
+      frag_shader_filepath(FRAG_SHADER_FILEPATH) {}
 
-Config::Config(int width_, int height_, std::string title_)
-    : width{width_}, height{height_}, title{title_} {}
+Config::Config(int width_, int height_, std::string& title_,
+               std::string vert_shader_filepath_,
+               std::string& frag_shader_filepath_)
+    : width{width_},
+      height{height_},
+      title{title_},
+      vert_shader_filepath(vert_shader_filepath_),
+      frag_shader_filepath(frag_shader_filepath_) {}
 
 // override operator<< for Config
 std::ostream& operator<<(std::ostream& out, Config config) {
