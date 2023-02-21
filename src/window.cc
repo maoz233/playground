@@ -12,6 +12,9 @@
 
 #include <stdexcept>
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
 namespace playground {
 
 Window::Window(const Config& config)
@@ -23,6 +26,8 @@ Window::~Window() {
   glfwDestroyWindow(window_);
   glfwTerminate();
 }
+
+bool Window::ShouldClose() { return glfwWindowShouldClose(window_); }
 
 void Window::InitWindow() {
   glfwInit();

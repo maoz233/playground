@@ -27,6 +27,8 @@ class Window {
   Window(const Config& config);
   ~Window();
 
+  bool ShouldClose();
+
  private:
   void InitWindow();
 
