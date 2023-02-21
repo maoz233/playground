@@ -18,6 +18,7 @@
 #include <vulkan/vulkan.h>
 
 #include "config.h"
+#include "pipeline.h"
 #include "window.h"
 
 namespace playground {
@@ -31,6 +32,7 @@ class Application {
 
  private:
   Window window_;
+  Pipeline pipeline_;
 };
 
 }  // namespace playground

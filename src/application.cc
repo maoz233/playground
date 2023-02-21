@@ -14,11 +14,13 @@
 #include <GLFW/glfw3.h>
 
 #include "config.h"
+#include "pipeline.h"
 #include "window.h"
 
 namespace playground {
 
-Application::Application(const Config& config) : window_{Window(config)} {}
+Application::Application(const Config& config)
+    : window_{Window(config)}, pipeline_{Pipeline(config)} {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {
