@@ -24,8 +24,11 @@ namespace playground {
 class Window {
  public:
   Window() = delete;
+  Window(const Window&) = delete;
   Window(const Config& config);
   ~Window();
+
+  Window& operator=(const Window&) = delete;
 
   bool ShouldClose();
 
