@@ -20,14 +20,18 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "window.h"
+
 namespace playground {
 
 inline bool QueueFamilies::IsComplete() { return graphics_family.has_value(); }
 
 Device::Device(const bool& enable_validation_layer,
-               const std::vector<const char*>& validation_layers)
+               const std::vector<const char*>& validation_layers,
+               Window& window)
     : enable_validation_layer_{enable_validation_layer},
-      validation_layers_{validation_layers} {
+      validation_layers_{validation_layers},
+      window_{window} {
   CreateInstance();
   SetupDebugMessenger();
   PickPhysicalDevice();
@@ -104,6 +108,10 @@ void Device::SetupDebugMessenger() {
     throw std::runtime_error(
         "----- Error::Device: Failed to set up debug messenger -----");
   }
+}
+
+void Device::CreateSurface() {
+  window_.CreateWindowSurface(instance_, &surface_);
 }
 
 void Device::PickPhysicalDevice() {

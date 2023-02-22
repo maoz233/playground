@@ -16,6 +16,8 @@
 #include <optional>
 #include <vector>
 
+#include "window.h"
+
 namespace playground {
 
 struct QueueFamilies {
@@ -28,11 +30,12 @@ class Device {
  public:
   Device() = delete;
   Device(const bool& enable_validation_layer,
-         const std::vector<const char*>& validation_layers);
+         const std::vector<const char*>& validation_layers, Window& window);
   ~Device();
 
   void CreateInstance();
   void SetupDebugMessenger();
+  void CreateSurface();
   void PickPhysicalDevice();
   void CreateLogicalDevice();
 
@@ -62,8 +65,10 @@ class Device {
  private:
   bool enable_validation_layer_;
   std::vector<const char*> validation_layers_;
+  Window& window_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debug_messenger_;
+  VkSurfaceKHR surface_;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_;
   VkQueue graphics_queue_;
