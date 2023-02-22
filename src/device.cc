@@ -34,12 +34,14 @@ Device::Device(const bool& enable_validation_layer,
       window_{window} {
   CreateInstance();
   SetupDebugMessenger();
+  CreateSurface();
   PickPhysicalDevice();
   CreateLogicalDevice();
 }
 
 Device::~Device() {
   vkDestroyDevice(device_, nullptr);
+  vkDestroySurfaceKHR(instance_, surface_, nullptr);
 
   if (enable_validation_layer_) {
     DestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
