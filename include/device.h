@@ -28,6 +28,7 @@ class Device {
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
+  void CheckValidationLayerSupport();
 
  private:
   bool enable_validation_layer_;

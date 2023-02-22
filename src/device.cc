@@ -50,7 +50,16 @@ void Device::CreateInstance() {
   create_info.enabledExtensionCount =
       static_cast<uint32_t>(required_extensions.size());
   create_info.ppEnabledExtensionNames = required_extensions.data();
-  create_info.enabledLayerCount = 0;
+
+  if (enable_validation_layer_) {
+    CheckValidationLayerSupport();
+
+    create_info.enabledLayerCount =
+        static_cast<uint32_t>(validation_layers_.size());
+    create_info.ppEnabledLayerNames = validation_layers_.data();
+  } else {
+    create_info.enabledLayerCount = 0;
+  }
 
   if (vkCreateInstance(&create_info, nullptr, &instance_) != VK_SUCCESS) {
     throw std::runtime_error(
@@ -100,7 +109,8 @@ void Device::CheckExtensionSupport(
     }
 
     if (!found) {
-      throw std::runtime_error("----- Error::Device: Not supported extension" +
+      std::clog << std::endl;
+      throw std::runtime_error("----- Error::Device: Not supported extension " +
                                static_cast<std::string>(required) + " -----");
     } else {
       std::clog << ": supported" << std::endl;
@@ -109,6 +119,42 @@ void Device::CheckExtensionSupport(
 
   std::clog << "----- Total Count: " << required_extensions.size() << " -----"
             << std::endl;
+}
+
+void Device::CheckValidationLayerSupport() {
+  uint32_t available_layer_cnt = 0;
+  vkEnumerateInstanceLayerProperties(&available_layer_cnt, nullptr);
+  std::vector<VkLayerProperties> available_layers(available_layer_cnt);
+  vkEnumerateInstanceLayerProperties(&available_layer_cnt,
+                                     available_layers.data());
+
+  std::clog << "----- Available Layers: " << std::endl;
+  for (const auto& layer : available_layers) {
+    std::clog << "\t\t" << layer.layerName << std::endl;
+  }
+  std::clog << "----- Total Count: " << available_layer_cnt << " -----"
+            << std::endl;
+
+  std::clog << "----- Validatiion Layer: " << std::endl;
+  for (const auto& layer : validation_layers_) {
+    std::clog << "\t\t" << layer;
+
+    bool found = false;
+    for (const auto& available : available_layers) {
+      if (static_cast<std::string>(available.layerName) == layer) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      std::clog << std::endl;
+      throw std::runtime_error("----- Error::Device: Not supported layer " +
+                               static_cast<std::string>(layer) + " -----");
+    } else {
+      std::clog << ": supported" << std::endl;
+    }
+  }
 }
 
 }  // namespace playground
