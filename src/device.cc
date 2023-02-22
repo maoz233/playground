@@ -185,6 +185,9 @@ void Device::CreateLogicalDevice() {
     throw std::runtime_error(
         "----- Error::Device: Failed to create logical device -----");
   }
+
+  vkGetDeviceQueue(device_, indices.graphics_family.value(), 0,
+                   &graphics_queue_);
 }
 
 void Device::CheckExtensionSupport(

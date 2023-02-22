@@ -66,6 +66,7 @@ class Device {
   VkDebugUtilsMessengerEXT debug_messenger_;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_;
+  VkQueue graphics_queue_;
 };
 
 }  // namespace playground
