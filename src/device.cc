@@ -157,12 +157,21 @@ void Device::CreateLogicalDevice() {
 
   VkPhysicalDeviceFeatures physical_device_features{};
 
+#ifdef __APPLE__
+  std::vector<const char*> extensions{"VK_KHR_portability_subset"};
+#endif
+
   VkDeviceCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   create_info.pQueueCreateInfos = &queue_create_info;
   create_info.queueCreateInfoCount = 1;
   create_info.pEnabledFeatures = &physical_device_features;
+#ifdef __APPLE__
+  create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  create_info.ppEnabledExtensionNames = extensions.data();
+#else
   create_info.enabledExtensionCount = 0;
+#endif
   if (enable_validation_layer_) {
     create_info.enabledLayerCount =
         static_cast<uint32_t>(validation_layers_.size());
@@ -204,6 +213,7 @@ void Device::CheckExtensionSupport(
 #ifdef __APPLE__
   required_extensions.emplace_back(
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+  required_extensions.emplace_back("VK_KHR_get_physical_device_properties2");
 #endif
 
   if (enable_validation_layer_) {
