@@ -13,9 +13,16 @@
 
 #include <vulkan/vulkan.h>
 
+#include <optional>
 #include <vector>
 
 namespace playground {
+
+struct QueueFamilies {
+  std::optional<uint32_t> graphics_family;
+
+  inline bool IsComplete();
+};
 
 class Device {
  public:
@@ -43,6 +50,7 @@ class Device {
 
   bool IsDeviceSuitable(VkPhysicalDevice device);
   int RateDeviceSuitability(VkPhysicalDevice device);
+  QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
 
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

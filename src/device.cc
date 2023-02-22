@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -20,6 +21,8 @@
 #include <vulkan/vulkan.h>
 
 namespace playground {
+
+inline bool QueueFamilies::IsComplete() { return graphics_family.has_value(); }
 
 Device::Device(const bool& enable_validation_layer,
                const std::vector<const char*>& validation_layers)
@@ -111,26 +114,31 @@ void Device::PickPhysicalDevice() {
   std::vector<VkPhysicalDevice> devices(device_cnt);
   vkEnumeratePhysicalDevices(instance_, &device_cnt, devices.data());
 
+  for (const auto& device : devices) {
+    if (IsDeviceSuitable(device)) {
+      physical_device_ = device;
+      break;
+    }
+  }
+
+  // std::multimap<int, VkPhysicalDevice> candidates;
   // for (const auto& device : devices) {
-  //   if (IsDeviceSuitable(device)) {
-  //     physical_device_ = device;
-  //     break;
-  //   }
+  //   int score = RateDeviceSuitability(device);
+  //   candidates.insert(std::make_pair(score, device));
   // }
 
-  std::multimap<int, VkPhysicalDevice> candidates;
-  for (const auto& device : devices) {
-    int score = RateDeviceSuitability(device);
-    candidates.insert(std::make_pair(score, device));
-  }
-
-  if (candidates.rbegin()->first > 0) {
-    physical_device_ = candidates.rbegin()->second;
-  }
+  // if (candidates.rbegin()->first > 0) {
+  //   physical_device_ = candidates.rbegin()->second;
+  // }
 
   if (VK_NULL_HANDLE == physical_device_) {
     throw std::runtime_error(
         "----- Error::Device: Failed to find a suitable GPU -----");
+  } else {
+    VkPhysicalDeviceProperties device_properties;
+    vkGetPhysicalDeviceProperties(physical_device_, &device_properties);
+    std::clog << "----- Selected Physical Device: "
+              << device_properties.deviceName << " -----" << std::endl;
   }
 }
 
@@ -257,14 +265,19 @@ void Device::DestroyDebugUtilsMessengerEXT(
 bool Device::IsDeviceSuitable(VkPhysicalDevice device) {
   VkPhysicalDeviceProperties device_properties;
   vkGetPhysicalDeviceProperties(device, &device_properties);
-  std::clog << "----- Physical Device: " << device_properties.deviceName
-            << " -----" << std::endl;
+  std::clog << "----- Available Physical Device: "
+            << device_properties.deviceName << " -----" << std::endl;
 
-  VkPhysicalDeviceFeatures device_features;
-  vkGetPhysicalDeviceFeatures(device, &device_features);
+  // VkPhysicalDeviceFeatures device_features;
+  // vkGetPhysicalDeviceFeatures(device, &device_features);
 
-  return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType &&
-         device_features.geometryShader;
+  // return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType
+  // &&
+  //        device_features.geometryShader;
+
+  QueueFamilies indices = FindQueueFaimilies(device);
+
+  return indices.IsComplete();
 }
 
 int Device::RateDeviceSuitability(VkPhysicalDevice device) {
@@ -289,6 +302,31 @@ int Device::RateDeviceSuitability(VkPhysicalDevice device) {
             << ", score: " << score << " -----" << std::endl;
 
   return score;
+}
+
+QueueFamilies Device::FindQueueFaimilies(VkPhysicalDevice device) {
+  QueueFamilies indices;
+
+  uint32_t queue_family_cnt = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_cnt, nullptr);
+  std::vector<VkQueueFamilyProperties> queue_families(queue_family_cnt);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_cnt,
+                                           queue_families.data());
+
+  int index = 0;
+  for (const auto& family : queue_families) {
+    if (family.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+      indices.graphics_family = index;
+    }
+
+    if (indices.IsComplete()) {
+      break;
+    }
+
+    ++index;
+  }
+
+  return indices;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
