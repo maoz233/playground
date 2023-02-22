@@ -95,6 +95,10 @@ void Device::CheckExtensionSupport(
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
 
+  if (enable_validation_layer_) {
+    required_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
+
   std::clog << "----- Required Extesions: " << std::endl;
   for (const auto& required : required_extensions) {
     std::clog << "\t\t" << required;
@@ -155,6 +159,9 @@ void Device::CheckValidationLayerSupport() {
       std::clog << ": supported" << std::endl;
     }
   }
+
+  std::clog << "----- Total Count: " << validation_layers_.size() << " -----"
+            << std::endl;
 }
 
 }  // namespace playground
