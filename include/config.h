@@ -18,6 +18,12 @@ namespace playground {
 const int WIDTH = 800;
 const int HEIGHT = 600;
 const std::string TITLE{"Playground"};
+#ifdef NDEBUG
+const bool ENABLE_VALIDATION_LAYER = false;
+#else
+const bool ENABLE_VALIDATION_LAYER = true;
+#endif
+
 #ifdef _WIN32
 const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert"};
 const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag"};
@@ -29,13 +35,12 @@ const std::string FRAG_SHADER_FILEPATH{"../shaders/triangle.frag"};
 struct Config {
   int width;
   int height;
+  bool enable_validation_layer;
   std::string title;
   std::string vert_shader_filepath;
   std::string frag_shader_filepath;
 
   Config();
-  Config(int width_, int height_, std::string& title_,
-         std::string vert_shader_filepath_, std::string& frag_shader_filepath_);
 
   friend std::ostream& operator<<(std::ostream& out, const Config& config);
 };
