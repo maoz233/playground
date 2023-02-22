@@ -25,15 +25,32 @@ class Device {
   ~Device();
 
   void CreateInstance();
+  void SetupDebugMessenger();
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
   void CheckValidationLayerSupport();
 
+  VkResult CreateDebugUtilsMessengerEXT(
+      VkInstance instance,
+      const VkDebugUtilsMessengerCreateInfoEXT* create_info,
+      const VkAllocationCallbacks* allocator,
+      VkDebugUtilsMessengerEXT* debug_messenger);
+  void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+                                     VkDebugUtilsMessengerEXT debug_messenger,
+                                     const VkAllocationCallbacks* allocator);
+
+  static VKAPI_ATTR VkBool32 VKAPI_CALL
+  DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+                VkDebugUtilsMessageTypeFlagsEXT message_type,
+                const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                void* user_data);
+
  private:
   bool enable_validation_layer_;
   std::vector<const char*> validation_layers_;
   VkInstance instance_;
+  VkDebugUtilsMessengerEXT debug_messenger_;
 };
 
 }  // namespace playground

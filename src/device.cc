@@ -25,9 +25,16 @@ Device::Device(const bool& enable_validation_layer,
     : enable_validation_layer_{enable_validation_layer},
       validation_layers_{validation_layers} {
   CreateInstance();
+  SetupDebugMessenger();
 }
 
-Device::~Device() { vkDestroyInstance(instance_, nullptr); }
+Device::~Device() {
+  if (enable_validation_layer_) {
+    DestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
+  }
+
+  vkDestroyInstance(instance_, nullptr);
+}
 
 void Device::CreateInstance() {
   VkApplicationInfo app_info{};
@@ -64,6 +71,30 @@ void Device::CreateInstance() {
   if (vkCreateInstance(&create_info, nullptr, &instance_) != VK_SUCCESS) {
     throw std::runtime_error(
         "----- Error:Vulkan: Failed to create instance -----");
+  }
+}
+
+void Device::SetupDebugMessenger() {
+  if (!enable_validation_layer_) {
+    return;
+  }
+
+  VkDebugUtilsMessengerCreateInfoEXT create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  create_info.messageSeverity =
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  create_info.pfnUserCallback = DebugCallBack;
+  create_info.pUserData = nullptr;  // optional
+
+  if (CreateDebugUtilsMessengerEXT(instance_, &create_info, nullptr,
+                                   &debug_messenger_) != VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to set up debug messenger -----");
   }
 }
 
@@ -162,6 +193,45 @@ void Device::CheckValidationLayerSupport() {
 
   std::clog << "----- Total Count: " << validation_layers_.size() << " -----"
             << std::endl;
+}
+
+VkResult Device::CreateDebugUtilsMessengerEXT(
+    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info,
+    const VkAllocationCallbacks* allocator,
+    VkDebugUtilsMessengerEXT* debug_messenger) {
+  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT");
+  if (func) {
+    return func(instance, create_info, allocator, debug_messenger);
+  } else {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+  }
+}
+
+void Device::DestroyDebugUtilsMessengerEXT(
+    VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger,
+    const VkAllocationCallbacks* allocator) {
+  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkDestoryDebugUtilsMessengerEXT");
+  if (func) {
+    func(instance, debug_messenger, allocator);
+  }
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL
+Device::DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+                      VkDebugUtilsMessageTypeFlagsEXT message_type,
+                      const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                      void* user_data) {
+  if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+    std::clog << "----- Validation Layer: "
+              << "\n\t\tSeverity: " << message_severity
+              << "\n\t\tType: " << message_type
+              << "\n\t\tMessage: " << callback_data->pMessage
+              << "\n\t\tUser Data Address: " << user_data << std::endl;
+  }
+
+  return VK_FALSE;
 }
 
 }  // namespace playground
