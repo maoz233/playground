@@ -64,13 +64,10 @@ void Device::CreateInstance() {
   required_extensions.emplace_back(
       VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
 #endif
+
   std::clog << "----- Required Extesions: " << std::endl;
-  for (auto& extension : required_extensions) {
-    std::clog << "\t\t";
-    while (*extension) {
-      std::clog << *(extension++);
-    }
-    std::clog << std::endl;
+  for (const auto& extension : required_extensions) {
+    std::clog << "\t\t" << extension << std::endl;
   }
 
   std::clog << "----- Total Count: " << required_extensions.size() << " -----"
