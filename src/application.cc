@@ -10,6 +10,8 @@
  */
 #include "application.h"
 
+#include <string>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -20,7 +22,9 @@
 namespace playground {
 
 Application::Application(const Config& config)
-    : window_{Window(config)}, pipeline_{Pipeline(config)} {}
+    : window_{Window(config.width, config.height, config.title)},
+      pipeline_{
+          Pipeline(config.vert_shader_filepath, config.frag_shader_filepath)} {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {
