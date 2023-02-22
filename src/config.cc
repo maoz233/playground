@@ -15,8 +15,8 @@ namespace playground {
 Config::Config()
     : width{WIDTH},
       height{HEIGHT},
-      title{TITLE},
       enable_validation_layer{ENABLE_VALIDATION_LAYER},
+      title{TITLE},
       vert_shader_filepath(VERT_SHADER_FILEPATH),
       frag_shader_filepath(FRAG_SHADER_FILEPATH),
       validation_layers{VALIDATION_LAYERS} {}
