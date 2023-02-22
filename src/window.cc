@@ -35,7 +35,7 @@ void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {
   if (glfwCreateWindowSurface(instance, window_, nullptr, surface) !=
       VK_SUCCESS) {
     throw std::runtime_error(
-        "----- Error::GLFW: Failed to create window surface -----");
+        "----- Error::Window: Failed to create window surface -----");
   }
 }
 
@@ -47,7 +47,7 @@ void Window::InitWindow() {
   window_ = glfwCreateWindow(width_, height_, title_.c_str(), nullptr, nullptr);
   if (!window_) {
     throw std::runtime_error(
-        "----- Error::GLFW: Failed to create the GLFW window -----");
+        "----- Error::Window: Failed to create the GLFW window -----");
   }
 }
 

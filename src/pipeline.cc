@@ -36,7 +36,7 @@ std::vector<char> Pipeline::ReadFile(const std::string& filepath) {
   std::ifstream file(filepath, std::ios::ate | std::ios::binary);
 
   if (!file.is_open()) {
-    throw std::runtime_error("----- Error::FILE: Failed to read file at " +
+    throw std::runtime_error("----- Error::Pipeline: Failed to read file at " +
                              filepath + " -----");
   }
 
