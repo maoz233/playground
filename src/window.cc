@@ -11,6 +11,7 @@
 #include "window.h"
 
 #include <stdexcept>
+#include <string>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -18,8 +19,8 @@
 
 namespace playground {
 
-Window::Window(const Config& config)
-    : width_{config.width}, height_{config.height}, title_{config.title} {
+Window::Window(const int& width, const int& height, const std::string& title)
+    : width_{width}, height_{height}, title_{title} {
   InitWindow();
 }
 

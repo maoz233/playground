@@ -25,7 +25,7 @@ class Window {
  public:
   Window() = delete;
   Window(const Window&) = delete;
-  Window(const Config& config);
+  Window(const int& width, const int& height, const std::string& title);
   ~Window();
 
   Window& operator=(const Window&) = delete;
