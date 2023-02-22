@@ -26,6 +26,7 @@ class Device {
 
   void CreateInstance();
   void SetupDebugMessenger();
+  void PickPhysicalDevice();
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
@@ -40,6 +41,9 @@ class Device {
                                      VkDebugUtilsMessengerEXT debug_messenger,
                                      const VkAllocationCallbacks* allocator);
 
+  bool IsDeviceSuitable(VkPhysicalDevice device);
+  int RateDeviceSuitability(VkPhysicalDevice device);
+
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
                 VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -51,6 +55,7 @@ class Device {
   std::vector<const char*> validation_layers_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debug_messenger_;
+  VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
 };
 
 }  // namespace playground

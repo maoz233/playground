@@ -11,6 +11,7 @@
 #include "device.h"
 
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <vector>
 
@@ -26,6 +27,7 @@ Device::Device(const bool& enable_validation_layer,
       validation_layers_{validation_layers} {
   CreateInstance();
   SetupDebugMessenger();
+  PickPhysicalDevice();
 }
 
 Device::~Device() {
@@ -95,6 +97,40 @@ void Device::SetupDebugMessenger() {
                                    &debug_messenger_) != VK_SUCCESS) {
     throw std::runtime_error(
         "----- Error::Device: Failed to set up debug messenger -----");
+  }
+}
+
+void Device::PickPhysicalDevice() {
+  uint32_t device_cnt = 0;
+  vkEnumeratePhysicalDevices(instance_, &device_cnt, nullptr);
+  if (0 == device_cnt) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to find GPUs with Vulkan support -----");
+  }
+
+  std::vector<VkPhysicalDevice> devices(device_cnt);
+  vkEnumeratePhysicalDevices(instance_, &device_cnt, devices.data());
+
+  // for (const auto& device : devices) {
+  //   if (IsDeviceSuitable(device)) {
+  //     physical_device_ = device;
+  //     break;
+  //   }
+  // }
+
+  std::multimap<int, VkPhysicalDevice> candidates;
+  for (const auto& device : devices) {
+    int score = RateDeviceSuitability(device);
+    candidates.insert(std::make_pair(score, device));
+  }
+
+  if (candidates.rbegin()->first > 0) {
+    physical_device_ = candidates.rbegin()->second;
+  }
+
+  if (VK_NULL_HANDLE == physical_device_) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to find a suitable GPU -----");
   }
 }
 
@@ -216,6 +252,43 @@ void Device::DestroyDebugUtilsMessengerEXT(
   if (func) {
     func(instance, debug_messenger, allocator);
   }
+}
+
+bool Device::IsDeviceSuitable(VkPhysicalDevice device) {
+  VkPhysicalDeviceProperties device_properties;
+  vkGetPhysicalDeviceProperties(device, &device_properties);
+  std::clog << "----- Physical Device: " << device_properties.deviceName
+            << " -----" << std::endl;
+
+  VkPhysicalDeviceFeatures device_features;
+  vkGetPhysicalDeviceFeatures(device, &device_features);
+
+  return VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType &&
+         device_features.geometryShader;
+}
+
+int Device::RateDeviceSuitability(VkPhysicalDevice device) {
+  VkPhysicalDeviceProperties device_properties;
+  vkGetPhysicalDeviceProperties(device, &device_properties);
+
+  VkPhysicalDeviceFeatures device_features;
+  vkGetPhysicalDeviceFeatures(device, &device_features);
+
+  if (!device_features.geometryShader) {
+    return 0;
+  }
+
+  int score = 0;
+
+  if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType) {
+    score += 1000;
+  }
+  score += device_properties.limits.maxImageDimension2D;
+
+  std::clog << "----- Physical Device: " << device_properties.deviceName
+            << ", score: " << score << " -----" << std::endl;
+
+  return score;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
