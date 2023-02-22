@@ -66,8 +66,24 @@ void Device::CreateInstance() {
 #endif
 
   std::clog << "----- Required Extesions: " << std::endl;
-  for (const auto& extension : required_extensions) {
-    std::clog << "\t\t" << extension << std::endl;
+  for (const auto& required : required_extensions) {
+    std::clog << "\t\t" << required;
+
+    bool found = false;
+    for (const auto& available : available_extensions) {
+      if (static_cast<std::string>(available.extensionName) ==
+          static_cast<std::string>(required)) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw std::runtime_error("----- Error::Device: Not supported extension" +
+                               static_cast<std::string>(required) + " -----");
+    } else {
+      std::clog << ": supported" << std::endl;
+    }
   }
 
   std::clog << "----- Total Count: " << required_extensions.size() << " -----"
