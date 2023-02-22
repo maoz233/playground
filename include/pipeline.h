@@ -20,7 +20,8 @@ namespace playground {
 class Pipeline {
  public:
   Pipeline() = delete;
-  Pipeline(const Config& config);
+  Pipeline(const std::string& vert_shader_filepath,
+           const std::string& frag_shader_filepath);
 
  private:
   void CreateGraphicsPipeline(const std::string& vert_shader_filepath,

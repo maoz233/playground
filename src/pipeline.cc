@@ -13,13 +13,12 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
-
-#include "config.h"
+#include <string>
 
 namespace playground {
-Pipeline::Pipeline(const Config& config) {
-  CreateGraphicsPipeline(config.vert_shader_filepath,
-                         config.frag_shader_filepath);
+Pipeline::Pipeline(const std::string& vert_shader_filepath,
+                   const std::string& frag_shader_filepath) {
+  CreateGraphicsPipeline(vert_shader_filepath, frag_shader_filepath);
 }
 
 void Pipeline::CreateGraphicsPipeline(const std::string& vert_shader_filepath,
