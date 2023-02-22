@@ -27,6 +27,9 @@ class Device {
   void CreateInstance();
 
  private:
+  void CheckExtensionSupport(std::vector<const char*>& required_extensions);
+
+ private:
   bool enable_validation_layer_;
   std::vector<const char*> validation_layers_;
   VkInstance instance_;

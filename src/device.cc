@@ -38,6 +38,28 @@ void Device::CreateInstance() {
   app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
   app_info.apiVersion = VK_API_VERSION_1_0;
 
+  std::vector<const char*> required_extensions{};
+  CheckExtensionSupport(required_extensions);
+
+  VkInstanceCreateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+  create_info.pApplicationInfo = &app_info;
+#ifdef __APPLE__
+  create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+  create_info.enabledExtensionCount =
+      static_cast<uint32_t>(required_extensions.size());
+  create_info.ppEnabledExtensionNames = required_extensions.data();
+  create_info.enabledLayerCount = 0;
+
+  if (vkCreateInstance(&create_info, nullptr, &instance_) != VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error:Vulkan: Failed to create instance -----");
+  }
+}
+
+void Device::CheckExtensionSupport(
+    std::vector<const char*>& required_extensions) {
   uint32_t available_extension_cnt = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
                                          nullptr);
@@ -56,7 +78,6 @@ void Device::CreateInstance() {
   const char** glfw_extensions;
   glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_cnt);
 
-  std::vector<const char*> required_extensions{};
   for (uint32_t i = 0; i < glfw_extension_cnt; ++i) {
     required_extensions.emplace_back(glfw_extensions[i]);
   }
@@ -88,22 +109,6 @@ void Device::CreateInstance() {
 
   std::clog << "----- Total Count: " << required_extensions.size() << " -----"
             << std::endl;
-
-  VkInstanceCreateInfo create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-  create_info.pApplicationInfo = &app_info;
-#ifdef __APPLE__
-  create_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
-#endif
-  create_info.enabledExtensionCount =
-      static_cast<uint32_t>(required_extensions.size());
-  create_info.ppEnabledExtensionNames = required_extensions.data();
-  create_info.enabledLayerCount = 0;
-
-  if (vkCreateInstance(&create_info, nullptr, &instance_) != VK_SUCCESS) {
-    throw std::runtime_error(
-        "----- Error:Vulkan: Failed to create instance -----");
-  }
 }
 
 }  // namespace playground
