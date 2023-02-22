@@ -274,16 +274,16 @@ int Device::RateDeviceSuitability(VkPhysicalDevice device) {
   VkPhysicalDeviceFeatures device_features;
   vkGetPhysicalDeviceFeatures(device, &device_features);
 
-  if (!device_features.geometryShader) {
-    return 0;
-  }
-
   int score = 0;
 
   if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType) {
     score += 1000;
   }
   score += device_properties.limits.maxImageDimension2D;
+
+  if (!device_features.geometryShader) {
+    score = 1;
+  }
 
   std::clog << "----- Physical Device: " << device_properties.deviceName
             << ", score: " << score << " -----" << std::endl;
