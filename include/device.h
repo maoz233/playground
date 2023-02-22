@@ -34,6 +34,7 @@ class Device {
   void CreateInstance();
   void SetupDebugMessenger();
   void PickPhysicalDevice();
+  void CreateLogicalDevice();
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
@@ -64,6 +65,7 @@ class Device {
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debug_messenger_;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+  VkDevice device_;
 };
 
 }  // namespace playground

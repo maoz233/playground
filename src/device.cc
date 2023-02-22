@@ -31,9 +31,12 @@ Device::Device(const bool& enable_validation_layer,
   CreateInstance();
   SetupDebugMessenger();
   PickPhysicalDevice();
+  CreateLogicalDevice();
 }
 
 Device::~Device() {
+  vkDestroyDevice(device_, nullptr);
+
   if (enable_validation_layer_) {
     DestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
   }
@@ -139,6 +142,39 @@ void Device::PickPhysicalDevice() {
     vkGetPhysicalDeviceProperties(physical_device_, &device_properties);
     std::clog << "----- Selected Physical Device: "
               << device_properties.deviceName << " -----" << std::endl;
+  }
+}
+
+void Device::CreateLogicalDevice() {
+  QueueFamilies indices = FindQueueFaimilies(physical_device_);
+  float queue_priority = 1.f;
+
+  VkDeviceQueueCreateInfo queue_create_info{};
+  queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+  queue_create_info.queueFamilyIndex = indices.graphics_family.value();
+  queue_create_info.queueCount = 1;
+  queue_create_info.pQueuePriorities = &queue_priority;
+
+  VkPhysicalDeviceFeatures physical_device_features{};
+
+  VkDeviceCreateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  create_info.pQueueCreateInfos = &queue_create_info;
+  create_info.queueCreateInfoCount = 1;
+  create_info.pEnabledFeatures = &physical_device_features;
+  create_info.enabledExtensionCount = 0;
+  if (enable_validation_layer_) {
+    create_info.enabledLayerCount =
+        static_cast<uint32_t>(validation_layers_.size());
+    create_info.ppEnabledLayerNames = validation_layers_.data();
+  } else {
+    create_info.enabledLayerCount = 0;
+  }
+
+  if (VK_SUCCESS !=
+      vkCreateDevice(physical_device_, &create_info, nullptr, &device_)) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to create logical device -----");
   }
 }
 
