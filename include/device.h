@@ -31,7 +31,8 @@ class Device {
  public:
   Device() = delete;
   Device(const bool& enable_validation_layer,
-         const std::vector<const char*>& validation_layers, Window& window);
+         const std::vector<const char*>& validation_layers,
+         const std::vector<const char*>& device_extensions, Window& window);
   ~Device();
 
   void CreateInstance();
@@ -66,6 +67,7 @@ class Device {
  private:
   bool enable_validation_layer_;
   std::vector<const char*> validation_layers_;
+  std::vector<const char*> device_extensions_;
   Window& window_;
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debug_messenger_;

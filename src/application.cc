@@ -27,7 +27,7 @@ Application::Application(const Config& config)
       pipeline_{
           Pipeline(config.vert_shader_filepath, config.frag_shader_filepath)},
       device_{Device(config.enable_validation_layer, config.validation_layers,
-                     window_)} {}
+                     config.device_extensions, window_)} {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {
