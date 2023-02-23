@@ -180,8 +180,11 @@ void Device::CreateLogicalDevice() {
 
   VkPhysicalDeviceFeatures physical_device_features{};
 
+  std::vector<const char*> extensions(device_extensions_.begin(),
+                                      device_extensions_.end());
+
 #ifdef __APPLE__
-  std::vector<const char*> extensions{"VK_KHR_portability_subset"};
+  extensions.push_back("VK_KHR_portability_subset");
 #endif
 
   VkDeviceCreateInfo create_info{};
@@ -189,14 +192,9 @@ void Device::CreateLogicalDevice() {
   create_info.queueCreateInfoCount =
       static_cast<uint32_t>(queue_create_infos.size());
   create_info.pQueueCreateInfos = queue_create_infos.data();
-
   create_info.pEnabledFeatures = &physical_device_features;
-#ifdef __APPLE__
   create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   create_info.ppEnabledExtensionNames = extensions.data();
-#else
-  create_info.enabledExtensionCount = 0;
-#endif
   if (enable_validation_layer_) {
     create_info.enabledLayerCount =
         static_cast<uint32_t>(validation_layers_.size());
