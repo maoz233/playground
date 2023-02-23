@@ -351,8 +351,9 @@ bool Device::IsDeviceSuitable(VkPhysicalDevice device) {
   //        device_features.geometryShader;
 
   QueueFamilies indices = FindQueueFaimilies(device);
+  bool extensions_supported = CheckDeviceExtensionSupport(device);
 
-  return indices.IsComplete();
+  return indices.IsComplete() && extensions_supported;
 }
 
 int Device::RateDeviceSuitability(VkPhysicalDevice device) {
@@ -409,6 +410,24 @@ QueueFamilies Device::FindQueueFaimilies(VkPhysicalDevice device) {
   }
 
   return indices;
+}
+
+bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+  uint32_t available_extension_cnt = 0;
+  vkEnumerateDeviceExtensionProperties(device, nullptr,
+                                       &available_extension_cnt, nullptr);
+  std::vector<VkExtensionProperties> available_extensions(
+      available_extension_cnt);
+  vkEnumerateDeviceExtensionProperties(
+      device, nullptr, &available_extension_cnt, available_extensions.data());
+
+  std::set<std::string> required_extensions(device_extensions_.begin(),
+                                            device_extensions_.end());
+  for (const auto& extension : available_extensions) {
+    required_extensions.erase(extension.extensionName);
+  }
+
+  return required_extensions.empty();
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
