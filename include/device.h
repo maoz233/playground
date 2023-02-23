@@ -22,6 +22,7 @@ namespace playground {
 
 struct QueueFamilies {
   std::optional<uint32_t> graphics_family;
+  std::optional<uint32_t> present_family;
 
   inline bool IsComplete();
 };
@@ -72,6 +73,7 @@ class Device {
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_;
   VkQueue graphics_queue_;
+  VkQueue present_queue_;
 };
 
 }  // namespace playground
