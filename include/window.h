@@ -33,6 +33,7 @@ class Window {
   bool ShouldClose();
 
   void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
+  void GetFramebufferSize(int& width, int& height);
 
  private:
   void InitWindow();

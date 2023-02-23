@@ -39,6 +39,10 @@ void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {
   }
 }
 
+void Window::GetFramebufferSize(int& width, int& height) {
+  glfwGetFramebufferSize(window_, &width, &height);
+}
+
 void Window::InitWindow() {
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
