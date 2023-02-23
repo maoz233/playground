@@ -51,6 +51,8 @@ class Device {
   void CreateSwapChain();
   void CreateImageViews();
 
+  VkDevice GetDevice();
+
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
   void CheckValidationLayerSupport();

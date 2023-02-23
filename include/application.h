@@ -33,8 +33,8 @@ class Application {
 
  private:
   Window window_;
-  Pipeline pipeline_;
   Device device_;
+  Pipeline pipeline_;
 };
 
 }  // namespace playground

@@ -24,10 +24,10 @@ namespace playground {
 
 Application::Application(const Config& config)
     : window_{Window(config.width, config.height, config.title)},
-      pipeline_{
-          Pipeline(config.vert_shader_filepath, config.frag_shader_filepath)},
       device_{Device(config.enable_validation_layer, config.validation_layers,
-                     config.device_extensions, window_)} {}
+                     config.device_extensions, window_)},
+      pipeline_{Pipeline(config.vert_shader_filepath,
+                         config.frag_shader_filepath, device_)} {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {

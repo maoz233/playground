@@ -10,6 +10,8 @@
  */
 #include "pipeline.h"
 
+#include <vulkan/vulkan.h>
+
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -17,8 +19,15 @@
 
 namespace playground {
 Pipeline::Pipeline(const std::string& vert_shader_filepath,
-                   const std::string& frag_shader_filepath) {
+                   const std::string& frag_shader_filepath, Device& device)
+    : device_{device} {
   CreateGraphicsPipeline(vert_shader_filepath, frag_shader_filepath);
+}
+
+Pipeline::~Pipeline() {
+  vkDestroyShaderModule(device_.GetDevice(), vert_shader_module_, nullptr);
+  vkDestroyShaderModule(device_.GetDevice(), frag_shader_module_, nullptr);
+  vkDestroyPipeline(device_.GetDevice(), graphics_pipeline_, nullptr);
 }
 
 void Pipeline::CreateGraphicsPipeline(const std::string& vert_shader_filepath,
@@ -30,6 +39,20 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vert_shader_filepath,
             << " -----" << std::endl;
   std::clog << "----- Fragment Shader Code Size: " << frag_shader_code.size()
             << " -----" << std::endl;
+}
+
+void Pipeline::CreateShaderModule(const std::vector<char>& code,
+                                  VkShaderModule* shader_module) {
+  VkShaderModuleCreateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  create_info.codeSize = code.size();
+  create_info.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+  if (VK_SUCCESS != vkCreateShaderModule(device_.GetDevice(), &create_info,
+                                         nullptr, shader_module)) {
+    throw std::runtime_error(
+        "----- Error::Pipelint: Failed to create shader module -----");
+  }
 }
 
 std::vector<char> Pipeline::ReadFile(const std::string& filepath) {

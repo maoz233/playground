@@ -312,6 +312,8 @@ void Device::CreateImageViews() {
   }
 }
 
+VkDevice Device::GetDevice() { return device_; }
+
 void Device::CheckExtensionSupport(
     std::vector<const char*>& required_extensions) {
   uint32_t available_extension_cnt = 0;
