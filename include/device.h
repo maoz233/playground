@@ -58,7 +58,7 @@ class Device {
   int RateDeviceSuitability(VkPhysicalDevice device);
 
   QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
-  bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+  void CheckDeviceExtensionSupport(VkPhysicalDevice device);
 
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,

@@ -350,10 +350,11 @@ bool Device::IsDeviceSuitable(VkPhysicalDevice device) {
   // &&
   //        device_features.geometryShader;
 
-  QueueFamilies indices = FindQueueFaimilies(device);
-  bool extensions_supported = CheckDeviceExtensionSupport(device);
+  CheckDeviceExtensionSupport(device);
 
-  return indices.IsComplete() && extensions_supported;
+  QueueFamilies indices = FindQueueFaimilies(device);
+
+  return indices.IsComplete();
 }
 
 int Device::RateDeviceSuitability(VkPhysicalDevice device) {
@@ -412,7 +413,7 @@ QueueFamilies Device::FindQueueFaimilies(VkPhysicalDevice device) {
   return indices;
 }
 
-bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+void Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
   uint32_t available_extension_cnt = 0;
   vkEnumerateDeviceExtensionProperties(device, nullptr,
                                        &available_extension_cnt, nullptr);
@@ -421,13 +422,27 @@ bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
   vkEnumerateDeviceExtensionProperties(
       device, nullptr, &available_extension_cnt, available_extensions.data());
 
+  std::clog << "----- Available Device Extesions: " << std::endl;
+  for (const auto& extension : available_extensions) {
+    std::clog << "\t\t" << extension.extensionName << std::endl;
+  }
+  std::clog << "----- Total Count: " << available_extension_cnt << " -----"
+            << std::endl;
+
   std::set<std::string> required_extensions(device_extensions_.begin(),
                                             device_extensions_.end());
   for (const auto& extension : available_extensions) {
     required_extensions.erase(extension.extensionName);
   }
 
-  return required_extensions.empty();
+  if (!required_extensions.empty()) {
+    for (const auto& extension : required_extensions) {
+      std::clog << "\t\t Not Supported: " << extension << std::endl;
+    }
+    throw std::runtime_error(
+        "----- Error::Device: Not support all required device extensions "
+        "------");
+  }
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL
