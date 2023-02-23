@@ -50,9 +50,13 @@ Device::Device(const bool& enable_validation_layer,
   PickPhysicalDevice();
   CreateLogicalDevice();
   CreateSwapChain();
+  CreateImageViews();
 }
 
 Device::~Device() {
+  for (auto image_view : swap_chain_image_views_) {
+    vkDestroyImageView(device_, image_view, nullptr);
+  }
   vkDestroySwapchainKHR(device_, swap_chain_, nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
@@ -279,7 +283,33 @@ void Device::CreateSwapChain() {
   vkGetSwapchainImagesKHR(device_, swap_chain_, &image_cnt,
                           swap_chain_images_.data());
   swap_chain_image_format_ = surface_format.format;
-  swap_chain_extent = extent;
+  swap_chain_extent_ = extent;
+}
+
+void Device::CreateImageViews() {
+  swap_chain_image_views_.resize(swap_chain_images_.size());
+  for (std::size_t i = 0; i < swap_chain_images_.size(); ++i) {
+    VkImageViewCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    create_info.image = swap_chain_images_[i];
+    create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    create_info.format = swap_chain_image_format_;
+    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    create_info.subresourceRange.baseMipLevel = 0;
+    create_info.subresourceRange.levelCount = 1;
+    create_info.subresourceRange.baseArrayLayer = 0;
+    create_info.subresourceRange.layerCount = 1;
+
+    if (VK_SUCCESS != vkCreateImageView(device_, &create_info, nullptr,
+                                        swap_chain_image_views_.data())) {
+      throw std::runtime_error(
+          "----- Error::Device: Failed to create image view -----");
+    }
+  }
 }
 
 void Device::CheckExtensionSupport(
