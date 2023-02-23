@@ -48,6 +48,7 @@ class Device {
   void CreateSurface();
   void PickPhysicalDevice();
   void CreateLogicalDevice();
+  void CreateSwapChain();
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
@@ -69,6 +70,12 @@ class Device {
   bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
+  VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+  VkSurfaceFormatKHR ChooseSwapSufaceFormat(
+      const std::vector<VkSurfaceFormatKHR>& available_formats);
+  VkPresentModeKHR ChooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR>& available_modes);
+
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
                 VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -87,6 +94,7 @@ class Device {
   VkDevice device_;
   VkQueue graphics_queue_;
   VkQueue present_queue_;
+  VkSwapchainKHR swap_chain_;
 };
 
 }  // namespace playground
