@@ -29,6 +29,10 @@ inline bool QueueFamilies::IsComplete() {
   return graphics_family.has_value() && present_family.has_value();
 }
 
+inline bool SwapChainSupportDetails::IsAdequate() {
+  return !formats.empty() && !present_modes.empty();
+}
+
 Device::Device(const bool& enable_validation_layer,
                const std::vector<const char*>& validation_layers,
                const std::vector<const char*>& device_extensions,
@@ -348,11 +352,12 @@ bool Device::IsDeviceSuitable(VkPhysicalDevice device) {
   // &&
   //        device_features.geometryShader;
 
-  CheckDeviceExtensionSupport(device);
-
   QueueFamilies indices = FindQueueFaimilies(device);
+  bool device_extensions_supported = CheckDeviceExtensionSupport(device);
+  SwapChainSupportDetails swap_chain_details = QuerySwapChainSupport(device);
 
-  return indices.IsComplete();
+  return indices.IsComplete() && device_extensions_supported &&
+         swap_chain_details.IsAdequate();
 }
 
 int Device::RateDeviceSuitability(VkPhysicalDevice device) {
@@ -411,7 +416,7 @@ QueueFamilies Device::FindQueueFaimilies(VkPhysicalDevice device) {
   return indices;
 }
 
-void Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
+bool Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
   uint32_t available_extension_cnt = 0;
   vkEnumerateDeviceExtensionProperties(device, nullptr,
                                        &available_extension_cnt, nullptr);
@@ -441,6 +446,34 @@ void Device::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
         "----- Error::Device: Not support all required device extensions "
         "------");
   }
+
+  return required_extensions.empty();
+}
+
+SwapChainSupportDetails Device::QuerySwapChainSupport(VkPhysicalDevice device) {
+  SwapChainSupportDetails details{};
+
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_,
+                                            &details.capabilities);
+
+  uint32_t format_cnt = 0;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_cnt, nullptr);
+  if (format_cnt) {
+    details.formats.resize(format_cnt);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_cnt,
+                                         details.formats.data());
+  }
+
+  uint32_t present_mode_cnt = 0;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &present_mode_cnt,
+                                            nullptr);
+  if (present_mode_cnt) {
+    details.present_modes.resize(present_mode_cnt);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(
+        device, surface_, &present_mode_cnt, details.present_modes.data());
+  }
+
+  return details;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL

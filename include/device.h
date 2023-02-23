@@ -27,6 +27,14 @@ struct QueueFamilies {
   inline bool IsComplete();
 };
 
+struct SwapChainSupportDetails {
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> present_modes;
+
+  inline bool IsAdequate();
+};
+
 class Device {
  public:
   Device() = delete;
@@ -58,7 +66,8 @@ class Device {
   int RateDeviceSuitability(VkPhysicalDevice device);
 
   QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
-  void CheckDeviceExtensionSupport(VkPhysicalDevice device);
+  bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+  SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
