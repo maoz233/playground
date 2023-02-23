@@ -10,6 +10,8 @@
  */
 #ifndef PLAYGROUND_INCLUDE_CONFIG_H_
 #define PLAYGROUND_INCLUDE_CONFIG_H_
+#include <vulkan/vulkan.h>
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -28,6 +30,9 @@ const bool ENABLE_VALIDATION_LAYER = true;
 
 const std::vector<const char*> VALIDATION_LAYERS{"VK_LAYER_KHRONOS_validation"};
 
+const std::vector<const char*> DEVICE_EXTENSIONS{
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+
 #ifdef _WIN32
 const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert"};
 const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag"};
@@ -44,6 +49,7 @@ struct Config {
   std::string vert_shader_filepath;
   std::string frag_shader_filepath;
   std::vector<const char*> validation_layers;
+  std::vector<const char*> device_extensions;
 
   Config();
 

@@ -19,7 +19,8 @@ Config::Config()
       title{TITLE},
       vert_shader_filepath(VERT_SHADER_FILEPATH),
       frag_shader_filepath(FRAG_SHADER_FILEPATH),
-      validation_layers{VALIDATION_LAYERS} {}
+      validation_layers{VALIDATION_LAYERS},
+      device_extensions{DEVICE_EXTENSIONS} {}
 
 // override operator<< for Config
 std::ostream& operator<<(std::ostream& out, Config config) {
