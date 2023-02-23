@@ -273,6 +273,13 @@ void Device::CreateSwapChain() {
     throw std::runtime_error(
         "----- Error::Device: Failed to create swap chain -----");
   }
+
+  vkGetSwapchainImagesKHR(device_, swap_chain_, &image_cnt, nullptr);
+  swap_chain_images_.resize(image_cnt);
+  vkGetSwapchainImagesKHR(device_, swap_chain_, &image_cnt,
+                          swap_chain_images_.data());
+  swap_chain_image_format_ = surface_format.format;
+  swap_chain_extent = extent;
 }
 
 void Device::CheckExtensionSupport(

@@ -95,6 +95,9 @@ class Device {
   VkQueue graphics_queue_;
   VkQueue present_queue_;
   VkSwapchainKHR swap_chain_;
+  std::vector<VkImage> swap_chain_images_;
+  VkFormat swap_chain_image_format_;
+  VkExtent2D swap_chain_extent;
 };
 
 }  // namespace playground
