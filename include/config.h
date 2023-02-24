@@ -32,11 +32,11 @@ const std::vector<const char*> VALIDATION_LAYERS{"VK_LAYER_KHRONOS_validation"};
 const std::vector<const char*> DEVICE_EXTENSIONS{"VK_KHR_swapchain"};
 
 #ifdef _WIN32
-const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert"};
-const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag"};
+const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert.spv"};
+const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag.spv"};
 #else
-const std::string VERT_SHADER_FILEPATH{"../shaders/triangle.vert"};
-const std::string FRAG_SHADER_FILEPATH{"../shaders/triangle.frag"};
+const std::string VERT_SHADER_FILEPATH{"../shaders/triangle.vert.spv"};
+const std::string FRAG_SHADER_FILEPATH{"../shaders/triangle.frag.spv"};
 #endif
 
 struct Config {
