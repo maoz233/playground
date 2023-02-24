@@ -52,6 +52,7 @@ class Device {
   void CreateImageViews();
 
   VkDevice GetDevice();
+  VkExtent2D GetSwapChainExtent();
 
  private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
