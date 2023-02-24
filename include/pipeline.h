@@ -32,6 +32,7 @@ class Pipeline {
  private:
   void CreateGraphicsPipeline(const std::string& vert_shader_filepath,
                               const std::string& frag_shader_filepath);
+
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
 
@@ -42,6 +43,7 @@ class Pipeline {
   VkPipeline graphics_pipeline_;
   VkShaderModule vert_shader_module_;
   VkShaderModule frag_shader_module_;
+  VkPipelineLayout pipeline_layout_;
 };
 
 }  // namespace playground
