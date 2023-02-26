@@ -64,14 +64,6 @@ struct DeviceConfig {
 struct PipelineConfig {
   std::string vert_shader_filepath;
   std::string frag_shader_filepath;
-  // std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
-  // VkPipelineVertexInputStateCreateInfo vertex_input;
-  // VkPipelineInputAssemblyStateCreateInfo input_assembly;
-  // VkPipelineViewportStateCreateInfo viewport_state;
-  // VkPipelineRasterizationStateCreateInfo rasterizer_state;
-  // VkPipelineMultisampleStateCreateInfo multisample_state;
-  // VkPipelineColorBlendStateCreateInfo color_blend_state;
-  // VkPipelineDynamicStateCreateInfo dynamic_state;
 
   PipelineConfig();
 
