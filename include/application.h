@@ -28,7 +28,10 @@ namespace playground {
 class Application {
  public:
   Application() = delete;
-  Application(const Config& config);
+  Application(const Application&) = delete;
+  Application(const ApplicationConfig& config);
+
+  Application& operator=(const Application&) = delete;
 
   void Run();
 
@@ -37,6 +40,7 @@ class Application {
   Device device_;
   SwapChain swap_chain_;
   Pipeline pipeline_;
+  VkCommandBuffer command_buffer_;
 };
 
 }  // namespace playground

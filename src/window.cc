@@ -19,8 +19,8 @@
 
 namespace playground {
 
-Window::Window(const int& width, const int& height, const std::string& title)
-    : width_{width}, height_{height}, title_{title} {
+Window::Window(const WindowConfig& config)
+    : width_{config.width}, height_{config.height}, title_{config.title} {
   InitWindow();
 }
 

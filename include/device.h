@@ -16,6 +16,7 @@
 #include <optional>
 #include <vector>
 
+#include "config.h"
 #include "window.h"
 
 namespace playground {
@@ -38,9 +39,7 @@ struct SwapChainSupportDetails {
 class Device {
  public:
   Device() = delete;
-  Device(const bool& enable_validation_layer,
-         const std::vector<const char*>& validation_layers,
-         const std::vector<const char*>& device_extensions, Window& window);
+  Device(Window& window, const DeviceConfig& config);
   ~Device();
 
   void CreateInstance();

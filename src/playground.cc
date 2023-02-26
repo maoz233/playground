@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    playground::Config config{};
+    playground::ApplicationConfig config{};
     playground::Application app{config};
 
     app.Run();

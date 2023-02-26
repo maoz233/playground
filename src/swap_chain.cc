@@ -26,6 +26,9 @@ SwapChain::SwapChain(Window& window, Device& device)
 }
 
 SwapChain::~SwapChain() {
+  for (auto framebuffer : frame_buffers_) {
+    vkDestroyFramebuffer(device_.GetDevice(), framebuffer, nullptr);
+  }
   vkDestroyRenderPass(device_.GetDevice(), render_pass_, nullptr);
   for (auto image_view : swap_chain_image_views_) {
     vkDestroyImageView(device_.GetDevice(), image_view, nullptr);
@@ -155,9 +158,39 @@ void SwapChain::CreateRenderPass() {
   }
 }
 
+void SwapChain::CreateFrameBuffers() {
+  frame_buffers_.resize(swap_chain_image_views_.size());
+
+  for (std::size_t i = 0; i < swap_chain_image_views_.size(); ++i) {
+    VkImageView attachments[] = {swap_chain_image_views_[i]};
+
+    VkFramebufferCreateInfo frame_buffer_info{};
+    frame_buffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    frame_buffer_info.renderPass = render_pass_;
+    frame_buffer_info.attachmentCount = 1;
+    frame_buffer_info.pAttachments = attachments;
+    frame_buffer_info.width = swap_chain_extent_.width;
+    frame_buffer_info.height = swap_chain_extent_.height;
+    frame_buffer_info.layers = 1;
+
+    if (VK_SUCCESS != vkCreateFramebuffer(device_.GetDevice(),
+                                          &frame_buffer_info, nullptr,
+                                          &frame_buffers_[i])) {
+      throw std::runtime_error(
+          "----- Error::SwapChain: Failed to create framebuffer -----");
+    }
+  }
+}
+
 VkExtent2D SwapChain::GetSwapChainExtent() { return swap_chain_extent_; }
 
 VkSwapchainKHR SwapChain::GetSwapChain() { return swap_chain_; }
+
+std::vector<VkImageView> SwapChain::GetSwapChainImageViews() {
+  return swap_chain_image_views_;
+}
+
+VkRenderPass SwapChain::GetRenderPass() { return render_pass_; }
 
 VkExtent2D SwapChain::ChooseSwapExtent(
     const VkSurfaceCapabilitiesKHR& capabilities) {

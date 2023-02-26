@@ -10,6 +10,7 @@
  */
 #include "application.h"
 
+#include <stdexcept>
 #include <string>
 
 #define GLFW_INCLUDE_VULKAN
@@ -23,13 +24,11 @@
 
 namespace playground {
 
-Application::Application(const Config& config)
-    : window_{Window(config.width, config.height, config.title)},
-      device_{Device(config.enable_validation_layer, config.validation_layers,
-                     config.device_extensions, window_)},
+Application::Application(const ApplicationConfig& config)
+    : window_{Window(config.window)},
+      device_{Device(window_, config.device)},
       swap_chain_{SwapChain(window_, device_)},
-      pipeline_{Pipeline(device_, swap_chain_, config.vert_shader_filepath,
-                         config.frag_shader_filepath)} {}
+      pipeline_(Pipeline(device_, swap_chain_, config.pipeline)) {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {

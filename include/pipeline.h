@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "config.h"
 #include "device.h"
 #include "swap_chain.h"
 
@@ -24,19 +25,23 @@ class Pipeline {
  public:
   Pipeline() = delete;
   Pipeline(const Pipeline&) = delete;
-  Pipeline(Device& device, SwapChain& swap_chain,
-           const std::string& vert_shader_filepath,
-           const std::string& frag_shader_filepath);
+  Pipeline(Device& device, SwapChain& swap_chain, const PipelineConfig& config);
   ~Pipeline();
 
-  void CreateGraphicsPipeline(const std::string& vert_shader_filepath,
-                              const std::string& frag_shader_filepath);
+  Pipeline& operator=(const Pipeline&) = delete;
 
+  void CreatePipelineLayout();
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
-  void CreatePipelineLayout();
-
-  void operator=(const Pipeline&) = delete;
+  void CreateShaderStage();
+  void CreateVertexInput();
+  void CreateInputAssembly();
+  void CreateViewportState();
+  void CreateRasterizerState();
+  void CreateMultisampleState();
+  void CreateColorBlendState();
+  void CreateDynamicState();
+  void CreateGraphicsPipeline();
 
  private:
   static std::vector<char> ReadFile(const std::string& filepath);
@@ -44,9 +49,17 @@ class Pipeline {
  private:
   Device& device_;
   SwapChain& swap_chain_;
+  VkPipelineLayout pipeline_layout_;
   VkShaderModule vert_shader_module_;
   VkShaderModule frag_shader_module_;
-  VkPipelineLayout pipeline_layout_;
+  std::vector<VkPipelineShaderStageCreateInfo> shader_stages_;
+  VkPipelineVertexInputStateCreateInfo vertex_input_;
+  VkPipelineInputAssemblyStateCreateInfo input_assembly_;
+  VkPipelineViewportStateCreateInfo viewport_state_;
+  VkPipelineRasterizationStateCreateInfo rasterizer_state_;
+  VkPipelineMultisampleStateCreateInfo multisample_state_;
+  VkPipelineColorBlendStateCreateInfo color_blend_state_;
+  VkPipelineDynamicStateCreateInfo dynamic_state_;
   VkPipeline graphics_pipeline_;
 };
 

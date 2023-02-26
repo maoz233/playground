@@ -35,13 +35,10 @@ inline bool SwapChainSupportDetails::IsAdequate() {
   return !formats.empty() && !present_modes.empty();
 }
 
-Device::Device(const bool& enable_validation_layer,
-               const std::vector<const char*>& validation_layers,
-               const std::vector<const char*>& device_extensions,
-               Window& window)
-    : enable_validation_layer_{enable_validation_layer},
-      validation_layers_{validation_layers},
-      device_extensions_{device_extensions},
+Device::Device(Window& window, const DeviceConfig& config)
+    : enable_validation_layer_{config.enable_validation_layer},
+      validation_layers_{config.validation_layers},
+      device_extensions_{config.device_extensions},
       window_{window} {
   CreateInstance();
   SetupDebugMessenger();

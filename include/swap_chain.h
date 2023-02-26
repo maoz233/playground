@@ -26,14 +26,17 @@ class SwapChain {
   SwapChain(const SwapChain&) = delete;
   ~SwapChain();
 
+  SwapChain& operator=(const SwapChain&) = delete;
+
   void CreateSwapChain();
   void CreateImageViews();
   void CreateRenderPass();
-
-  void operator=(const SwapChain&) = delete;
+  void CreateFrameBuffers();
 
   VkExtent2D GetSwapChainExtent();
   VkSwapchainKHR GetSwapChain();
+  std::vector<VkImageView> GetSwapChainImageViews();
+  VkRenderPass GetRenderPass();
 
  private:
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
@@ -51,6 +54,7 @@ class SwapChain {
   VkExtent2D swap_chain_extent_;
   std::vector<VkImageView> swap_chain_image_views_;
   VkRenderPass render_pass_;
+  std::vector<VkFramebuffer> frame_buffers_;
 };
 
 }  // namespace playground
