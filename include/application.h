@@ -20,6 +20,7 @@
 #include "config.h"
 #include "device.h"
 #include "pipeline.h"
+#include "swap_chain.h"
 #include "window.h"
 
 namespace playground {
@@ -34,6 +35,7 @@ class Application {
  private:
   Window window_;
   Device device_;
+  SwapChain swap_chain_;
   Pipeline pipeline_;
 };
 

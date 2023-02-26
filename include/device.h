@@ -48,13 +48,11 @@ class Device {
   void CreateSurface();
   void PickPhysicalDevice();
   void CreateLogicalDevice();
-  void CreateSwapChain();
-  void CreateImageViews();
 
+  VkSurfaceKHR GetSurface();
+  VkPhysicalDevice GetPhysicalDevice();
   VkDevice GetDevice();
-  VkExtent2D GetSwapChainExtent();
 
- private:
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
   void CheckValidationLayerSupport();
 
@@ -74,12 +72,6 @@ class Device {
   bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
 
-  VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
-  VkSurfaceFormatKHR ChooseSwapSufaceFormat(
-      const std::vector<VkSurfaceFormatKHR>& available_formats);
-  VkPresentModeKHR ChooseSwapPresentMode(
-      const std::vector<VkPresentModeKHR>& available_modes);
-
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
                 VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -98,11 +90,6 @@ class Device {
   VkDevice device_;
   VkQueue graphics_queue_;
   VkQueue present_queue_;
-  VkSwapchainKHR swap_chain_;
-  std::vector<VkImage> swap_chain_images_;
-  VkFormat swap_chain_image_format_;
-  VkExtent2D swap_chain_extent_;
-  std::vector<VkImageView> swap_chain_image_views_;
 };
 
 }  // namespace playground

@@ -18,9 +18,10 @@
 #include <string>
 
 namespace playground {
-Pipeline::Pipeline(const std::string& vert_shader_filepath,
-                   const std::string& frag_shader_filepath, Device& device)
-    : device_{device} {
+Pipeline::Pipeline(Device& device, SwapChain& swap_chain,
+                   const std::string& vert_shader_filepath,
+                   const std::string& frag_shader_filepath)
+    : device_{device}, swap_chain_{swap_chain} {
   CreateGraphicsPipeline(vert_shader_filepath, frag_shader_filepath);
 }
 
@@ -82,15 +83,15 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vert_shader_filepath,
   VkViewport viewport{};
   viewport.x = 0.f;
   viewport.y = 0.f;
-  viewport.width = static_cast<float>(device_.GetSwapChainExtent().width);
-  viewport.height = static_cast<float>(device_.GetSwapChainExtent().height);
+  viewport.width = static_cast<float>(swap_chain_.GetSwapChainExtent().width);
+  viewport.height = static_cast<float>(swap_chain_.GetSwapChainExtent().height);
   viewport.minDepth = 0.f;
   viewport.maxDepth = 1.f;
 
   // Scissor
   VkRect2D scissor{};
   scissor.offset = {0, 0};
-  scissor.extent = device_.GetSwapChainExtent();
+  scissor.extent = swap_chain_.GetSwapChainExtent();
 
   // Dynamic state: viewport & scissor
   std::vector<VkDynamicState> dynamic_states{VK_DYNAMIC_STATE_VIEWPORT,
@@ -162,19 +163,7 @@ void Pipeline::CreateGraphicsPipeline(const std::string& vert_shader_filepath,
   color_blend_info.blendConstants[2] = 0.f;
   color_blend_info.blendConstants[3] = 0.f;
 
-  VkPipelineLayoutCreateInfo pipeline_layout_info{};
-  pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipeline_layout_info.setLayoutCount = 0;
-  pipeline_layout_info.pSetLayouts = nullptr;
-  pipeline_layout_info.pushConstantRangeCount = 0;
-  pipeline_layout_info.pPushConstantRanges = nullptr;
-
-  if (VK_SUCCESS != vkCreatePipelineLayout(device_.GetDevice(),
-                                           &pipeline_layout_info, nullptr,
-                                           &pipeline_layout_)) {
-    throw std::runtime_error(
-        "----- Error::Device: Failed to create pipeline layout -----");
-  }
+  CreatePipelineLayout();
 }
 
 void Pipeline::CreateShaderModule(const std::vector<char>& code,
@@ -188,6 +177,22 @@ void Pipeline::CreateShaderModule(const std::vector<char>& code,
                                          nullptr, shader_module)) {
     throw std::runtime_error(
         "----- Error::Pipelint: Failed to create shader module -----");
+  }
+}
+
+void Pipeline::CreatePipelineLayout() {
+  VkPipelineLayoutCreateInfo pipeline_layout_info{};
+  pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipeline_layout_info.setLayoutCount = 0;
+  pipeline_layout_info.pSetLayouts = nullptr;
+  pipeline_layout_info.pushConstantRangeCount = 0;
+  pipeline_layout_info.pPushConstantRanges = nullptr;
+
+  if (VK_SUCCESS != vkCreatePipelineLayout(device_.GetDevice(),
+                                           &pipeline_layout_info, nullptr,
+                                           &pipeline_layout_)) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to create pipeline layout -----");
   }
 }
 

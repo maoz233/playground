@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "device.h"
+#include "swap_chain.h"
 
 namespace playground {
 
@@ -23,27 +24,30 @@ class Pipeline {
  public:
   Pipeline() = delete;
   Pipeline(const Pipeline&) = delete;
-  Pipeline(const std::string& vert_shader_filepath,
-           const std::string& frag_shader_filepath, Device& device);
+  Pipeline(Device& device, SwapChain& swap_chain,
+           const std::string& vert_shader_filepath,
+           const std::string& frag_shader_filepath);
   ~Pipeline();
 
-  void operator=(const Pipeline&) = delete;
-
- private:
   void CreateGraphicsPipeline(const std::string& vert_shader_filepath,
                               const std::string& frag_shader_filepath);
 
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
+  void CreatePipelineLayout();
 
+  void operator=(const Pipeline&) = delete;
+
+ private:
   static std::vector<char> ReadFile(const std::string& filepath);
 
  private:
   Device& device_;
-  VkPipeline graphics_pipeline_;
+  SwapChain& swap_chain_;
   VkShaderModule vert_shader_module_;
   VkShaderModule frag_shader_module_;
   VkPipelineLayout pipeline_layout_;
+  VkPipeline graphics_pipeline_;
 };
 
 }  // namespace playground
