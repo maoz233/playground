@@ -98,6 +98,7 @@ void Pipeline::CreateGraphicsPipeline(const PipelineConfig& config,
   pipeline_info.stageCount = static_cast<uint32_t>(shader_stages.size());
   pipeline_info.pStages = shader_stages.data();
   pipeline_info.pVertexInputState = &state.vertex_input_state;
+  pipeline_info.pInputAssemblyState = &state.input_assembly_state;
   pipeline_info.pViewportState = &state.viewport_state;
   pipeline_info.pRasterizationState = &state.rasterization_state;
   pipeline_info.pMultisampleState = &state.multisample_state;
