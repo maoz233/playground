@@ -28,7 +28,10 @@ Application::Application(const ApplicationConfig& config)
     : window_{Window(config.window)},
       device_{Device(window_, config.device)},
       swap_chain_{SwapChain(window_, device_)},
-      pipeline_(Pipeline(device_, swap_chain_, config.pipeline)) {}
+      pipeline_(Pipeline(device_, swap_chain_, config.pipeline,
+                         Pipeline::GetDefultPipelineState(
+                             swap_chain_.GetSwapChainExtent().width,
+                             swap_chain_.GetSwapChainExtent().height))) {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {

@@ -21,30 +21,39 @@
 
 namespace playground {
 
+struct PipelineState {
+  VkPipelineVertexInputStateCreateInfo vertex_input_state;
+  VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
+  VkViewport viewport;
+  VkRect2D scissor;
+  VkPipelineViewportStateCreateInfo viewport_state;
+  VkPipelineRasterizationStateCreateInfo rasterization_state;
+  VkPipelineMultisampleStateCreateInfo multisample_state;
+  VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
+  VkPipelineColorBlendAttachmentState color_blend_attachment;
+  VkPipelineColorBlendStateCreateInfo color_blend_state;
+  VkPipelineDynamicStateCreateInfo dynamic_state;
+};
+
 class Pipeline {
  public:
   Pipeline() = delete;
   Pipeline(const Pipeline&) = delete;
-  Pipeline(Device& device, SwapChain& swap_chain, const PipelineConfig& config);
+  Pipeline(Device& device, SwapChain& swap_chain, const PipelineConfig& config,
+           const PipelineState& state);
   ~Pipeline();
 
   Pipeline& operator=(const Pipeline&) = delete;
 
   void CreatePipelineLayout();
+  void CreateGraphicsPipeline(const PipelineConfig& config,
+                              const PipelineState& state);
+
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
-  void CreateShaderStage();
-  void CreateVertexInput();
-  void CreateInputAssembly();
-  void CreateViewportState();
-  void CreateRasterizerState();
-  void CreateMultisampleState();
-  void CreateColorBlendState();
-  void CreateDynamicState();
-  void CreateGraphicsPipeline();
 
- private:
   static std::vector<char> ReadFile(const std::string& filepath);
+  static PipelineState GetDefultPipelineState(uint32_t width, uint32_t height);
 
  private:
   Device& device_;
@@ -52,14 +61,6 @@ class Pipeline {
   VkPipelineLayout pipeline_layout_;
   VkShaderModule vert_shader_module_;
   VkShaderModule frag_shader_module_;
-  std::vector<VkPipelineShaderStageCreateInfo> shader_stages_;
-  VkPipelineVertexInputStateCreateInfo vertex_input_;
-  VkPipelineInputAssemblyStateCreateInfo input_assembly_;
-  VkPipelineViewportStateCreateInfo viewport_state_;
-  VkPipelineRasterizationStateCreateInfo rasterizer_state_;
-  VkPipelineMultisampleStateCreateInfo multisample_state_;
-  VkPipelineColorBlendStateCreateInfo color_blend_state_;
-  VkPipelineDynamicStateCreateInfo dynamic_state_;
   VkPipeline graphics_pipeline_;
 };
 
