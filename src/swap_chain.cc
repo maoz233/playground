@@ -23,9 +23,12 @@ SwapChain::SwapChain(Window& window, Device& device)
   CreateSwapChain();
   CreateImageViews();
   CreateRenderPass();
+  CreateFrameBuffers();
+  CreateCommandPool();
 }
 
 SwapChain::~SwapChain() {
+  vkDestroyCommandPool(device_.GetDevice(), command_pool_, nullptr);
   for (auto framebuffer : frame_buffers_) {
     vkDestroyFramebuffer(device_.GetDevice(), framebuffer, nullptr);
   }
@@ -116,8 +119,7 @@ void SwapChain::CreateImageViews() {
     create_info.subresourceRange.layerCount = 1;
 
     if (VK_SUCCESS != vkCreateImageView(device_.GetDevice(), &create_info,
-                                        nullptr,
-                                        swap_chain_image_views_.data())) {
+                                        nullptr, &swap_chain_image_views_[i])) {
       throw std::runtime_error(
           "----- Error::SwapChain: Failed to create image view -----");
     }
@@ -179,6 +181,23 @@ void SwapChain::CreateFrameBuffers() {
       throw std::runtime_error(
           "----- Error::SwapChain: Failed to create framebuffer -----");
     }
+  }
+}
+
+void SwapChain::CreateCommandPool() {
+  QueueFamilies queue_faimily_indices =
+      device_.FindQueueFaimilies(device_.GetPhysicalDevice());
+
+  VkCommandPoolCreateInfo command_pool_info{};
+  command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  command_pool_info.queueFamilyIndex =
+      queue_faimily_indices.graphics_family.value();
+
+  if (VK_SUCCESS != vkCreateCommandPool(device_.GetDevice(), &command_pool_info,
+                                        nullptr, &command_pool_)) {
+    throw std::runtime_error(
+        "----- Error::SwapChain: Failed to create command pool -----");
   }
 }
 

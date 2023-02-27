@@ -36,13 +36,15 @@ class Application {
   void Run();
 
   void ProcessInput();
+  void CreateCommandBuffers();
+  void DrawFrame();
 
  private:
   Window window_;
   Device device_;
   SwapChain swap_chain_;
   Pipeline pipeline_;
-  VkCommandBuffer command_buffer_;
+  std::vector<VkCommandBuffer> command_buffers_;
 };
 
 }  // namespace playground

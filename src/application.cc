@@ -43,4 +43,8 @@ void Application::ProcessInput() {
     glfwSetWindowShouldClose(window_.GetWindow(), true);
 }
 
+void Application::CreateCommandBuffers() {}
+
+void Application::DrawFrame() {}
+
 }  // namespace playground

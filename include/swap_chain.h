@@ -32,6 +32,7 @@ class SwapChain {
   void CreateImageViews();
   void CreateRenderPass();
   void CreateFrameBuffers();
+  void CreateCommandPool();
 
   VkExtent2D GetSwapChainExtent();
   VkSwapchainKHR GetSwapChain();
@@ -55,6 +56,7 @@ class SwapChain {
   std::vector<VkImageView> swap_chain_image_views_;
   VkRenderPass render_pass_;
   std::vector<VkFramebuffer> frame_buffers_;
+  VkCommandPool command_pool_;
 };
 
 }  // namespace playground
