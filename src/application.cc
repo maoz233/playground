@@ -28,15 +28,19 @@ Application::Application(const ApplicationConfig& config)
     : window_{Window(config.window)},
       device_{Device(window_, config.device)},
       swap_chain_{SwapChain(window_, device_)},
-      pipeline_{Pipeline(device_, swap_chain_, config.pipeline,
-                         Pipeline::GetDefultPipelineState(
-                             swap_chain_.GetSwapChainExtent().width,
-                             swap_chain_.GetSwapChainExtent().height))} {}
+      pipeline_{Pipeline(device_, swap_chain_, config.pipeline)} {}
 
 void Application::Run() {
   while (!window_.ShouldClose()) {
+    ProcessInput();
+
     glfwPollEvents();
   }
+}
+
+void Application::ProcessInput() {
+  if (GLFW_PRESS == glfwGetKey(window_.GetWindow(), GLFW_KEY_ESCAPE))
+    glfwSetWindowShouldClose(window_.GetWindow(), true);
 }
 
 }  // namespace playground

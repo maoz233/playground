@@ -21,39 +21,22 @@
 
 namespace playground {
 
-struct PipelineState {
-  VkPipelineVertexInputStateCreateInfo vertex_input_state;
-  VkPipelineInputAssemblyStateCreateInfo input_assembly_state;
-  VkViewport viewport;
-  VkRect2D scissor;
-  VkPipelineViewportStateCreateInfo viewport_state;
-  VkPipelineRasterizationStateCreateInfo rasterization_state;
-  VkPipelineMultisampleStateCreateInfo multisample_state;
-  VkPipelineDepthStencilStateCreateInfo depth_stencil_state;
-  VkPipelineColorBlendAttachmentState color_blend_attachment;
-  VkPipelineColorBlendStateCreateInfo color_blend_state;
-  VkPipelineDynamicStateCreateInfo dynamic_state;
-};
-
 class Pipeline {
  public:
   Pipeline() = delete;
   Pipeline(const Pipeline&) = delete;
-  Pipeline(Device& device, SwapChain& swap_chain, const PipelineConfig& config,
-           const PipelineState& state);
+  Pipeline(Device& device, SwapChain& swap_chain, const PipelineConfig& config);
   ~Pipeline();
 
   Pipeline& operator=(const Pipeline&) = delete;
 
   void CreatePipelineLayout();
-  void CreateGraphicsPipeline(const PipelineConfig& config,
-                              const PipelineState& state);
+  void CreateGraphicsPipeline(const PipelineConfig& config);
 
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
 
   static std::vector<char> ReadFile(const std::string& filepath);
-  static PipelineState GetDefultPipelineState(uint32_t width, uint32_t height);
 
  private:
   Device& device_;

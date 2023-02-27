@@ -29,6 +29,8 @@ Window::~Window() {
   glfwTerminate();
 }
 
+GLFWwindow* Window::GetWindow() { return window_; }
+
 bool Window::ShouldClose() { return glfwWindowShouldClose(window_); }
 
 void Window::CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface) {

@@ -35,6 +35,8 @@ class Application {
 
   void Run();
 
+  void ProcessInput();
+
  private:
   Window window_;
   Device device_;

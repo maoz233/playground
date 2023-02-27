@@ -30,6 +30,8 @@ class Window {
 
   Window& operator=(const Window&) = delete;
 
+  GLFWwindow* GetWindow();
+
   bool ShouldClose();
 
   void CreateWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
