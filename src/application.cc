@@ -37,7 +37,8 @@ Application::Application(const ApplicationConfig& config)
 }
 
 Application::~Application() {
-  for (std::size_t i = 0; i < max_frames_in_flight_; ++i) {
+  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
+       ++i) {
     vkDestroySemaphore(device_.GetDevice(), image_available_semaphores_[i],
                        nullptr);
     vkDestroySemaphore(device_.GetDevice(), render_finished_semaphores_[i],
@@ -81,7 +82,8 @@ void Application::CreateSemaphores() {
   VkSemaphoreCreateInfo semaphore_info{};
   semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-  for (std::size_t i = 0; i < max_frames_in_flight_; ++i) {
+  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
+       ++i) {
     if (VK_SUCCESS != vkCreateSemaphore(device_.GetDevice(), &semaphore_info,
                                         nullptr,
                                         &image_available_semaphores_[i]) ||
@@ -101,7 +103,8 @@ void Application::CreateFence() {
   fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (std::size_t i = 0; i < max_frames_in_flight_; ++i) {
+  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
+       ++i) {
     if (VK_SUCCESS != vkCreateFence(device_.GetDevice(), &fence_info, nullptr,
                                     &in_flight_fences_[i])) {
       throw std::runtime_error(
