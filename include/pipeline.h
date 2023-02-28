@@ -36,6 +36,8 @@ class Pipeline {
   void CreateShaderModule(const std::vector<char>& code,
                           VkShaderModule* shader_module);
 
+  VkPipeline GetGraphicsPipeline();
+
   static std::vector<char> ReadFile(const std::string& filepath);
 
  private:

@@ -223,6 +223,10 @@ VkPhysicalDevice Device::GetPhysicalDevice() { return physical_device_; }
 
 VkDevice Device::GetDevice() { return device_; }
 
+VkQueue Device::GetgGaphicsQueue() { return graphics_queue_; }
+
+VkQueue Device::GetPresentQueue() { return present_queue_; }
+
 void Device::CheckExtensionSupport(
     std::vector<const char*>& required_extensions) {
   uint32_t available_extension_cnt = 0;
@@ -338,7 +342,7 @@ void Device::DestroyDebugUtilsMessengerEXT(
     VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger,
     const VkAllocationCallbacks* allocator) {
   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-      instance, "vkDestoryDebugUtilsMessengerEXT");
+      instance, "vkDestroyDebugUtilsMessengerEXT");
   if (func) {
     func(instance, debug_messenger, allocator);
   }

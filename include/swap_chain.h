@@ -38,6 +38,8 @@ class SwapChain {
   VkSwapchainKHR GetSwapChain();
   std::vector<VkImageView> GetSwapChainImageViews();
   VkRenderPass GetRenderPass();
+  VkFramebuffer GetFrameBuffer(uint32_t index);
+  VkCommandPool GetCommandPool();
 
  private:
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);

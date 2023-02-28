@@ -48,20 +48,6 @@ void Pipeline::CreatePipelineLayout() {
   }
 }
 
-void Pipeline::CreateShaderModule(const std::vector<char>& code,
-                                  VkShaderModule* shader_module) {
-  VkShaderModuleCreateInfo create_info{};
-  create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  create_info.codeSize = code.size();
-  create_info.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-  if (VK_SUCCESS != vkCreateShaderModule(device_.GetDevice(), &create_info,
-                                         nullptr, shader_module)) {
-    throw std::runtime_error(
-        "----- Error::Pipeline: Failed to create shader module -----");
-  }
-}
-
 void Pipeline::CreateGraphicsPipeline(const PipelineConfig& config) {
   auto vert_shader_code = ReadFile(config.vert_shader_filepath);
   auto frag_shader_code = ReadFile(config.frag_shader_filepath);
@@ -219,6 +205,22 @@ void Pipeline::CreateGraphicsPipeline(const PipelineConfig& config) {
         "----- Error::Pipeline: Failed to create graphics pipeline -----");
   }
 }
+
+void Pipeline::CreateShaderModule(const std::vector<char>& code,
+                                  VkShaderModule* shader_module) {
+  VkShaderModuleCreateInfo create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  create_info.codeSize = code.size();
+  create_info.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+  if (VK_SUCCESS != vkCreateShaderModule(device_.GetDevice(), &create_info,
+                                         nullptr, shader_module)) {
+    throw std::runtime_error(
+        "----- Error::Pipeline: Failed to create shader module -----");
+  }
+}
+
+VkPipeline Pipeline::GetGraphicsPipeline() { return graphics_pipeline_; }
 
 std::vector<char> Pipeline::ReadFile(const std::string& filepath) {
   std::ifstream file(filepath, std::ios::ate | std::ios::binary);

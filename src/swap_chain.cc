@@ -146,12 +146,22 @@ void SwapChain::CreateRenderPass() {
   subpass.colorAttachmentCount = 1;
   subpass.pColorAttachments = &color_attachment_ref;
 
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
   VkRenderPassCreateInfo render_pass_info{};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   render_pass_info.attachmentCount = 1;
   render_pass_info.pAttachments = &color_attachment;
   render_pass_info.subpassCount = 1;
   render_pass_info.pSubpasses = &subpass;
+  render_pass_info.dependencyCount = 1;
+  render_pass_info.pDependencies = &dependency;
 
   if (VK_SUCCESS != vkCreateRenderPass(device_.GetDevice(), &render_pass_info,
                                        nullptr, &render_pass_)) {
@@ -210,6 +220,12 @@ std::vector<VkImageView> SwapChain::GetSwapChainImageViews() {
 }
 
 VkRenderPass SwapChain::GetRenderPass() { return render_pass_; }
+
+VkFramebuffer SwapChain::GetFrameBuffer(uint32_t index) {
+  return frame_buffers_[index];
+}
+
+VkCommandPool SwapChain::GetCommandPool() { return command_pool_; }
 
 VkExtent2D SwapChain::ChooseSwapExtent(
     const VkSurfaceCapabilitiesKHR& capabilities) {

@@ -30,21 +30,31 @@ class Application {
   Application() = delete;
   Application(const Application&) = delete;
   Application(const ApplicationConfig& config);
+  ~Application();
 
   Application& operator=(const Application&) = delete;
 
   void Run();
 
+  void CreateCommandBuffer();
+  void CreateSemaphores();
+  void CreateFence();
+
   void ProcessInput();
-  void CreateCommandBuffers();
   void DrawFrame();
+
+  void RecordCommandBuffer(VkCommandBuffer command_buffer,
+                           uint32_t image_index);
 
  private:
   Window window_;
   Device device_;
   SwapChain swap_chain_;
   Pipeline pipeline_;
-  std::vector<VkCommandBuffer> command_buffers_;
+  VkCommandBuffer command_buffer_;
+  VkSemaphore image_available_semaphore_;
+  VkSemaphore render_finished_semaphore_;
+  VkFence in_flight_fence_;
 };
 
 }  // namespace playground

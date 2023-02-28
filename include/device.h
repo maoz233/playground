@@ -51,6 +51,8 @@ class Device {
   VkSurfaceKHR GetSurface();
   VkPhysicalDevice GetPhysicalDevice();
   VkDevice GetDevice();
+  VkQueue GetgGaphicsQueue();
+  VkQueue GetPresentQueue();
 
   void CheckExtensionSupport(std::vector<const char*>& required_extensions);
   void CheckValidationLayerSupport();
