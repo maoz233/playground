@@ -36,7 +36,7 @@ class Application {
 
   void Run();
 
-  void CreateCommandBuffer();
+  void CreateCommandBuffers();
   void CreateSemaphores();
   void CreateFence();
 
@@ -47,14 +47,16 @@ class Application {
                            uint32_t image_index);
 
  private:
+  int max_frames_in_flight_;
+  int current_frame_;
   Window window_;
   Device device_;
   SwapChain swap_chain_;
   Pipeline pipeline_;
-  VkCommandBuffer command_buffer_;
-  VkSemaphore image_available_semaphore_;
-  VkSemaphore render_finished_semaphore_;
-  VkFence in_flight_fence_;
+  std::vector<VkCommandBuffer> command_buffers_;
+  std::vector<VkSemaphore> image_available_semaphores_;
+  std::vector<VkSemaphore> render_finished_semaphores_;
+  std::vector<VkFence> in_flight_fences_;
 };
 
 }  // namespace playground

@@ -58,4 +58,10 @@ std::ostream& operator<<(std::ostream& out, const PipelineConfig& config) {
   return out;
 }
 
+ApplicationConfig::ApplicationConfig()
+    : max_frames_in_flight{MAX_FRAMES_IN_FLIGHT},
+      window{WindowConfig()},
+      device{DeviceConfig()},
+      pipeline{PipelineConfig()} {}
+
 }  // namespace playground

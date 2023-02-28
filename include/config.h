@@ -17,6 +17,8 @@
 
 namespace playground {
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 const int WIDTH = 800;
 const int HEIGHT = 600;
 const std::string TITLE{"Playground"};
@@ -72,9 +74,12 @@ struct PipelineConfig {
 };
 
 struct ApplicationConfig {
+  int max_frames_in_flight;
   WindowConfig window;
   DeviceConfig device;
   PipelineConfig pipeline;
+
+  ApplicationConfig();
 
   friend std::ostream& operator<<(std::ostream& out,
                                   const ApplicationConfig& config);
