@@ -10,6 +10,7 @@
  */
 #ifndef PLAYGROUND_INCLUDE_APPLICATION_H_
 #define PLAYGROUND_INCLUDE_APPLICATION_H_
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -17,46 +18,88 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-#include "config.h"
-#include "device.h"
-#include "pipeline.h"
-#include "swap_chain.h"
-#include "window.h"
-
 namespace playground {
+
+const int WIDTH = 800;
+const int HEIGHT = 600;
+const std::string TITLE{"Playground"};
+
+#ifdef NDEBUG
+const bool ENABLE_VALIDATION_LAYER = false;
+#else
+const bool ENABLE_VALIDATION_LAYER = true;
+#endif
+
+#ifdef _WIN32
+const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert.spv"};
+const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag.spv"};
+#else
+const std::string VERT_SHADER_FILEPATH{"../shaders/triangle.vert.spv"};
+const std::string FRAG_SHADER_FILEPATH{"../shaders/triangle.frag.spv"};
+#endif
+
+struct QueueFamilies {
+  std::optional<uint32_t> graphics_family;
+  std::optional<uint32_t> present_family;
+
+  inline bool IsCompleted();
+};
+
+struct SwapChainSupportDetails {
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> present_modes;
+
+  inline bool IsAdequate();
+};
 
 class Application {
  public:
-  Application() = delete;
+  Application();
   Application(const Application&) = delete;
-  Application(const ApplicationConfig& config);
   ~Application();
 
   Application& operator=(const Application&) = delete;
 
   void Run();
 
-  void CreateCommandBuffers();
-  void CreateSemaphores();
-  void CreateFence();
+  void CreateWindow();
+  void CreateInstance();
+  void SetupDebugMessenger();
+  void CreateSurface();
+  void PickPhysicalDevice();
+  void CreateLogicalDevice();
 
-  void ProcessInput();
-  void DrawFrame();
+  void CheckInstanceExtensionSupport(
+      std::vector<const char*>& required_extensions);
+  void CheckInstanceLayerSupport(std::vector<const char*>& required_layers);
 
-  void RecordCommandBuffer(VkCommandBuffer command_buffer,
-                           uint32_t image_index);
+  VkResult CreateDebugUtilsMessengerEXT(
+      VkInstance instance,
+      const VkDebugUtilsMessengerCreateInfoEXT* create_info,
+      const VkAllocationCallbacks* allocator,
+      VkDebugUtilsMessengerEXT* debug_messenger);
+  void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+                                     VkDebugUtilsMessengerEXT debug_messenger,
+                                     const VkAllocationCallbacks* allocator);
+
+  QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
+
+  static VKAPI_ATTR VkBool32 VKAPI_CALL
+  DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+                VkDebugUtilsMessageTypeFlagsEXT message_type,
+                const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+                void* user_data);
 
  private:
-  int max_frames_in_flight_;
-  int current_frame_;
-  Window window_;
-  Device device_;
-  SwapChain swap_chain_;
-  Pipeline pipeline_;
-  std::vector<VkCommandBuffer> command_buffers_;
-  std::vector<VkSemaphore> image_available_semaphores_;
-  std::vector<VkSemaphore> render_finished_semaphores_;
-  std::vector<VkFence> in_flight_fences_;
+  GLFWwindow* window_;
+  VkInstance instance_;
+  VkDebugUtilsMessengerEXT debug_messenger_;
+  VkSurfaceKHR surface_;
+  VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
+  VkDevice device_;
+  VkQueue graphics_queue_;
+  VkQueue present_queue_;
 };
 
 }  // namespace playground

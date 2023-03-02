@@ -23,9 +23,7 @@ int main(int argc, char* argv[]) {
   }
 
   try {
-    playground::ApplicationConfig config{};
-    playground::Application app{config};
-
+    playground::Application app{};
     app.Run();
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;

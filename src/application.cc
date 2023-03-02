@@ -10,222 +10,299 @@
  */
 #include "application.h"
 
+#include <iostream>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-
-#include "config.h"
-#include "device.h"
-#include "pipeline.h"
-#include "swap_chain.h"
-#include "window.h"
+#include <vulkan/vulkan.h>
 
 namespace playground {
 
-Application::Application(const ApplicationConfig& config)
-    : max_frames_in_flight_{config.max_frames_in_flight},
-      current_frame_{0},
-      window_{Window(config.window)},
-      device_{Device(window_, config.device)},
-      swap_chain_{SwapChain(window_, device_)},
-      pipeline_{Pipeline(device_, swap_chain_, config.pipeline)} {
-  CreateCommandBuffers();
-  CreateSemaphores();
-  CreateFence();
+bool QueueFamilies::IsCompleted() {
+  return graphics_family.has_value() && present_family.has_value();
 }
 
-Application::~Application() {
-  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
-       ++i) {
-    vkDestroySemaphore(device_.GetDevice(), image_available_semaphores_[i],
-                       nullptr);
-    vkDestroySemaphore(device_.GetDevice(), render_finished_semaphores_[i],
-                       nullptr);
-    vkDestroyFence(device_.GetDevice(), in_flight_fences_[i], nullptr);
+Application::Application() {
+  CreateWindow();
+  CreateInstance();
+
+  if (ENABLE_VALIDATION_LAYER) {
+    SetupDebugMessenger();
   }
+
+  CreateSurface();
+  PickPhysicalDevice();
+  CreateLogicalDevice();
 }
+
+Application::~Application() {}
 
 void Application::Run() {
-  while (!window_.ShouldClose()) {
-    ProcessInput();
+  while (glfwWindowShouldClose(window_)) {
     glfwPollEvents();
-    DrawFrame();
   }
-
-  vkDeviceWaitIdle(device_.GetDevice());
 }
 
-void Application::CreateCommandBuffers() {
-  command_buffers_.resize(max_frames_in_flight_);
+void Application::CreateWindow() {
+  glfwInit();
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-  VkCommandBufferAllocateInfo allocate_info{};
-  allocate_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocate_info.commandPool = swap_chain_.GetCommandPool();
-  allocate_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocate_info.commandBufferCount =
-      static_cast<uint32_t>(command_buffers_.size());
+  window_ = glfwCreateWindow(WIDTH, HEIGHT, TITLE.c_str(), nullptr, nullptr);
 
-  if (VK_SUCCESS != vkAllocateCommandBuffers(device_.GetDevice(),
-                                             &allocate_info,
-                                             command_buffers_.data())) {
+  if (!window_) {
     throw std::runtime_error(
-        "----- Error::SwapChain: Failed to allocate command buffer -----");
+        "----- Error::Window: Failed to create the GLFW window -----");
   }
 }
 
-void Application::CreateSemaphores() {
-  image_available_semaphores_.resize(max_frames_in_flight_);
-  render_finished_semaphores_.resize(max_frames_in_flight_);
+void Application::CreateInstance() {
+  VkInstanceCreateInfo instance_info{};
+  instance_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
-  VkSemaphoreCreateInfo semaphore_info{};
-  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VkApplicationInfo app_info{};
+  app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+  app_info.pApplicationName = "Ray-Tracing";
+  app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+  app_info.pEngineName = "No Engine";
+  app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+  app_info.apiVersion = VK_API_VERSION_1_0;
 
-  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
-       ++i) {
-    if (VK_SUCCESS != vkCreateSemaphore(device_.GetDevice(), &semaphore_info,
-                                        nullptr,
-                                        &image_available_semaphores_[i]) ||
-        VK_SUCCESS != vkCreateSemaphore(device_.GetDevice(), &semaphore_info,
-                                        nullptr,
-                                        &render_finished_semaphores_[i])) {
-      throw std::runtime_error(
-          "----- Error::SwapChain: Failed to create semaphore -----");
+  instance_info.pApplicationInfo = &app_info;
+
+#ifdef __APPLE__
+  instance_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
+  // extensions
+  std::vector<const char*> extensions{};
+  CheckInstanceExtensionSupport(extensions);
+
+  instance_info.enabledExtensionCount =
+      static_cast<uint32_t>(extensions.size());
+  instance_info.ppEnabledExtensionNames = extensions.data();
+
+  // layers
+  if (ENABLE_VALIDATION_LAYER) {
+    std::vector<const char*> layers{};
+    CheckInstanceLayerSupport(layers);
+
+    instance_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
+    instance_info.ppEnabledLayerNames = layers.data();
+  } else {
+    instance_info.enabledLayerCount = 0;
+  }
+
+  if (VK_SUCCESS != vkCreateInstance(&instance_info, nullptr, &instance_)) {
+    throw std::runtime_error(
+        "----- Error:Vulkan: Failed to create instance -----");
+  }
+}
+
+void Application::SetupDebugMessenger() {
+  VkDebugUtilsMessengerCreateInfoEXT create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  create_info.messageSeverity =
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+      VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  create_info.pfnUserCallback = DebugCallBack;
+  create_info.pUserData = nullptr;  // optional
+
+  if (CreateDebugUtilsMessengerEXT(instance_, &create_info, nullptr,
+                                   &debug_messenger_) != VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to set up debug messenger -----");
+  }
+}
+
+void Application::CreateSurface() {
+  glfwCreateWindowSurface(instance_, window_, nullptr, &surface_);
+}
+
+void Application::PickPhysicalDevice() {
+  uint32_t device_cnt = 0;
+  vkEnumeratePhysicalDevices(instance_, &device_cnt, nullptr);
+  if (0 == device_cnt) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to find GPUs with Vulkan support -----");
+  }
+
+  if (VK_NULL_HANDLE == physical_device_) {
+    throw std::runtime_error(
+        "----- Error::Device: Failed to find a suitable GPU -----");
+  }
+}
+
+void Application::CreateLogicalDevice() {
+  QueueFamilies indices = FindQueueFaimilies(physical_device_);
+
+  std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+  std::set<uint32_t> unique_queue_families{indices.graphics_family.value(),
+                                           indices.present_family.value()};
+
+  float queue_priority = 1.f;
+  for (const auto& family : unique_queue_families) {
+    VkDeviceQueueCreateInfo queue_create_info{};
+    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_create_info.queueFamilyIndex = family;
+    queue_create_info.queueCount = 1;
+    queue_create_info.pQueuePriorities = &queue_priority;
+
+    queue_create_infos.push_back(queue_create_info);
+  }
+
+  VkPhysicalDeviceFeatures physical_device_features{};
+}
+
+void Application::CheckInstanceExtensionSupport(
+    std::vector<const char*>& required_extensions) {
+  uint32_t available_ext_cnt = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_ext_cnt, nullptr);
+  std::vector<VkExtensionProperties> available_exts(available_ext_cnt);
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_ext_cnt,
+                                         available_exts.data());
+
+  // glfw required extensions
+  uint32_t glfw_ext_cnt = 0;
+  const char** glfw_exts = glfwGetRequiredInstanceExtensions(&glfw_ext_cnt);
+
+  for (uint32_t i = 0; i < glfw_ext_cnt; ++i) {
+    required_extensions.push_back(glfw_exts[i]);
+  }
+
+#ifdef __APPLE__
+  required_extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+  required_extensions.push_back("VK_KHR_get_physical_device_properties2");
+#endif
+
+  required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+  for (const auto& required : required_extensions) {
+    bool found = false;
+    for (const auto& available : available_exts) {
+      if (static_cast<std::string>(available.extensionName) ==
+          static_cast<std::string>(required)) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw std::runtime_error("----- Error::Vulkan: Not supported extension " +
+                               static_cast<std::string>(required) + " -----");
     }
   }
 }
 
-void Application::CreateFence() {
-  in_flight_fences_.resize(max_frames_in_flight_);
+void Application::CheckInstanceLayerSupport(
+    std::vector<const char*>& required_layers) {
+  // add validation layer
+  required_layers.push_back("VK_LAYER_KHRONOS_validation");
 
-  VkFenceCreateInfo fence_info{};
-  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  uint32_t available_layer_cnt = 0;
+  vkEnumerateInstanceLayerProperties(&available_layer_cnt, nullptr);
+  std::vector<VkLayerProperties> available_layers(available_layer_cnt);
+  vkEnumerateInstanceLayerProperties(&available_layer_cnt,
+                                     available_layers.data());
 
-  for (std::size_t i = 0; i < static_cast<std::size_t>(max_frames_in_flight_);
-       ++i) {
-    if (VK_SUCCESS != vkCreateFence(device_.GetDevice(), &fence_info, nullptr,
-                                    &in_flight_fences_[i])) {
-      throw std::runtime_error(
-          "----- Error::Application: Failed to create fence -----");
+  for (const auto& required : required_layers) {
+    bool found = false;
+
+    for (const auto& available : available_layers) {
+      if (static_cast<std::string>(available.layerName) ==
+          static_cast<std::string>(required)) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      throw std::runtime_error("----- Error::Vulkan: Not supported layer " +
+                               static_cast<std::string>(required) + " ----- ");
     }
   }
 }
 
-void Application::ProcessInput() {
-  if (GLFW_PRESS == glfwGetKey(window_.GetWindow(), GLFW_KEY_ESCAPE))
-    glfwSetWindowShouldClose(window_.GetWindow(), true);
-}
+VkResult Application::CreateDebugUtilsMessengerEXT(
+    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* create_info,
+    const VkAllocationCallbacks* allocator,
+    VkDebugUtilsMessengerEXT* debug_messenger) {
+  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT");
 
-void Application::DrawFrame() {
-  vkWaitForFences(device_.GetDevice(), 1, &in_flight_fences_[current_frame_],
-                  VK_TRUE, UINT64_MAX);
-  vkResetFences(device_.GetDevice(), 1, &in_flight_fences_[current_frame_]);
-
-  uint32_t image_index;
-  vkAcquireNextImageKHR(device_.GetDevice(), swap_chain_.GetSwapChain(),
-                        UINT64_MAX, image_available_semaphores_[current_frame_],
-                        VK_NULL_HANDLE, &image_index);
-
-  vkResetCommandBuffer(command_buffers_[current_frame_], 0);
-  RecordCommandBuffer(command_buffers_[current_frame_], image_index);
-
-  VkSemaphore wait_semaphores[] = {image_available_semaphores_[current_frame_]};
-
-  VkPipelineStageFlags wait_stages[] = {
-      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-  VkSemaphore signal_semaphores[] = {
-      render_finished_semaphores_[current_frame_]};
-
-  VkSubmitInfo submit_info{};
-  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = wait_semaphores;
-  submit_info.pWaitDstStageMask = wait_stages;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = &command_buffers_[current_frame_];
-  submit_info.signalSemaphoreCount = 1;
-  submit_info.pSignalSemaphores = signal_semaphores;
-
-  if (VK_SUCCESS != vkQueueSubmit(device_.GetgGaphicsQueue(), 1, &submit_info,
-                                  in_flight_fences_[current_frame_])) {
-    throw std::runtime_error(
-        "----- Error::Application: Failed to submit draw command buffer -----");
-  }
-
-  VkSwapchainKHR swap_chains[] = {swap_chain_.GetSwapChain()};
-
-  VkPresentInfoKHR present_info{};
-  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  present_info.waitSemaphoreCount = 1;
-  present_info.pWaitSemaphores = signal_semaphores;
-  present_info.swapchainCount = 1;
-  present_info.pSwapchains = swap_chains;
-  present_info.pImageIndices = &image_index;
-  present_info.pResults = nullptr;
-
-  vkQueuePresentKHR(device_.GetPresentQueue(), &present_info);
-
-  current_frame_ = (current_frame_ + 1) % max_frames_in_flight_;
-}
-
-void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
-                                      uint32_t image_index) {
-  VkCommandBufferBeginInfo begin_info{};
-  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  begin_info.flags = 0;
-  begin_info.pInheritanceInfo = nullptr;
-
-  if (VK_SUCCESS != vkBeginCommandBuffer(command_buffer, &begin_info)) {
-    throw std::runtime_error(
-        "----- Error::SwapChain: Failed to record command buffer at begin "
-        "-----");
-  }
-
-  VkClearValue clear_color = {{{0.f, 0.f, 0.f, 1.f}}};
-
-  VkRenderPassBeginInfo render_pass_info{};
-  render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  render_pass_info.renderPass = swap_chain_.GetRenderPass();
-  render_pass_info.framebuffer = swap_chain_.GetFrameBuffer(image_index);
-  render_pass_info.renderArea.offset = {0, 0};
-  render_pass_info.renderArea.extent = swap_chain_.GetSwapChainExtent();
-  render_pass_info.clearValueCount = 1;
-  render_pass_info.pClearValues = &clear_color;
-
-  vkCmdBeginRenderPass(command_buffer, &render_pass_info,
-                       VK_SUBPASS_CONTENTS_INLINE);
-
-  vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    pipeline_.GetGraphicsPipeline());
-
-  VkViewport viewport{};
-  viewport.x = 0.f;
-  viewport.y = 0.f;
-  viewport.width = static_cast<float>(swap_chain_.GetSwapChainExtent().width);
-  viewport.height = static_cast<float>(swap_chain_.GetSwapChainExtent().height);
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
-
-  vkCmdSetViewport(command_buffer, 0, 1, &viewport);
-
-  VkRect2D scissor{};
-  scissor.offset = {0, 0};
-  scissor.extent = swap_chain_.GetSwapChainExtent();
-
-  vkCmdSetScissor(command_buffer, 0, 1, &scissor);
-
-  vkCmdDraw(command_buffer, 3, 1, 0, 0);
-
-  vkCmdEndRenderPass(command_buffer);
-
-  if (VK_SUCCESS != vkEndCommandBuffer(command_buffer)) {
-    throw std::runtime_error(
-        "----- Error::Application: Failed to record command buffer at end "
-        "---- ");
+  if (func) {
+    return func(instance, create_info, allocator, debug_messenger);
+  } else {
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
   }
 }
 
+void Application::DestroyDebugUtilsMessengerEXT(
+    VkInstance instance, VkDebugUtilsMessengerEXT debug_messenger,
+    const VkAllocationCallbacks* allocator) {
+  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkDestroyDebugUtilsMessengerEXT");
+
+  if (func) {
+    func(instance, debug_messenger, allocator);
+  } else {
+    throw std::runtime_error(
+        "----- Error::Vualkan: Failed to destroy debug utils messenger -----");
+  }
+}
+
+QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
+  QueueFamilies indices{};
+
+  // queue families
+  uint32_t queue_family_cnt = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_cnt, nullptr);
+  std::vector<VkQueueFamilyProperties> queue_families(queue_family_cnt);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_cnt,
+                                           queue_families.data());
+
+  // get index of required queue family
+  for (uint32_t i = 0; i < queue_family_cnt; ++i) {
+    if (queue_families[i].queueCount > 0 &&
+        (VK_QUEUE_GRAPHICS_BIT & queue_families[i].queueFlags)) {
+      indices.graphics_family = i;
+    }
+
+    VkBool32 present_support = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &present_support);
+    if (queue_families[i].queueCount > 0 && present_support) {
+      indices.present_family = i;
+    }
+
+    if (indices.IsCompleted()) {
+      break;
+    }
+  }
+
+  return indices;
+}
+
+VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallBack(
+    VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
+    VkDebugUtilsMessageTypeFlagsEXT message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
+    void* user_data) {
+  if (message_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+    std::clog << "----- Validation Layer: "
+              << "\n\t\tSeverity: " << message_severity
+              << "\n\t\tType: " << message_type
+              << "\n\t\tMessage: " << callback_data->pMessage
+              << "\n\t\tUser Data Address: " << user_data << std::endl;
+  }
+
+  return VK_FALSE;
+}
 }  // namespace playground
