@@ -345,6 +345,12 @@ int Application::EvaluateDevice(VkPhysicalDevice device) {
     score = 1;
   }
 
+  // physical device queue family support
+  QueueFamilies queue_faimlies = FindQueueFaimilies(device);
+  if (!queue_faimlies.IsCompleted()) {
+    score = 0;
+  }
+
   std::clog << "----- Physical Device: " << device_properties.deviceName
             << ", score: " << score << " -----\n";
 
