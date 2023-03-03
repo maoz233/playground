@@ -69,10 +69,10 @@ class Application {
   void CreateSurface();
   void PickPhysicalDevice();
   void CreateLogicalDevice();
+  void CreateSwapChain();
 
-  void CheckInstanceExtensionSupport(
-      std::vector<const char*>& required_extensions);
-  void CheckInstanceLayerSupport(std::vector<const char*>& required_layers);
+  void FindInstanceExtensions(std::vector<const char*>& required_extensions);
+  void FindInstanceLayers(std::vector<const char*>& required_layers);
 
   VkResult CreateDebugUtilsMessengerEXT(
       VkInstance instance,
@@ -85,8 +85,16 @@ class Application {
 
   int EvaluateDevice(VkPhysicalDevice device);
 
+  void FindDeviceExtensions(VkPhysicalDevice device,
+                            std::vector<const char*>& required_extensions);
+
   QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
-  void CheckDeviceExtensions(std::vector<const char*>& required_extensions);
+
+  bool CheckExtensionSupport(
+      std::vector<VkExtensionProperties>& available_extensions,
+      std::vector<const char*>& required_extensions);
+  bool CheckLayersSupport(std::vector<VkLayerProperties>& available_layers,
+                          std::vector<const char*>& required_layers);
 
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -104,6 +112,7 @@ class Application {
   QueueFamilies queue_faimlies_;
   VkQueue graphics_queue_;
   VkQueue present_queue_;
+  VkSwapchainKHR swap_chain_;
 };
 
 }  // namespace playground

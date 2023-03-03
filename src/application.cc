@@ -90,20 +90,22 @@ void Application::CreateInstance() {
   instance_info.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-  // extensions
-  std::vector<const char*> extensions{};
-  CheckInstanceExtensionSupport(extensions);
+  // required extensions
+  std::vector<const char*> required_extensions{};
+  FindInstanceExtensions(required_extensions);
 
   instance_info.enabledExtensionCount =
-      static_cast<uint32_t>(extensions.size());
-  instance_info.ppEnabledExtensionNames = extensions.data();
+      static_cast<uint32_t>(required_extensions.size());
+  instance_info.ppEnabledExtensionNames = required_extensions.data();
 
   // layers
-  std::vector<const char*> layers{};
-  CheckInstanceLayerSupport(layers);
+  std::vector<const char*> required_layers{};
+  FindInstanceLayers(required_layers);
+
   if (ENABLE_VALIDATION_LAYER) {
-    instance_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
-    instance_info.ppEnabledLayerNames = layers.data();
+    instance_info.enabledLayerCount =
+        static_cast<uint32_t>(required_layers.size());
+    instance_info.ppEnabledLayerNames = required_layers.data();
   } else {
     instance_info.enabledLayerCount = 0;
   }
@@ -195,20 +197,22 @@ void Application::CreateLogicalDevice() {
 
   device_info.pEnabledFeatures = &physical_device_features;
 
-  // physical device extensions
-  std::vector<const char*> extensions{};
-  CheckDeviceExtensions(extensions);
+  // required physical device extensions
+  std::vector<const char*> required_extensions{};
+  FindDeviceExtensions(physical_device_, required_extensions);
 
-  device_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-  device_info.ppEnabledExtensionNames = extensions.data();
+  device_info.enabledExtensionCount =
+      static_cast<uint32_t>(required_extensions.size());
+  device_info.ppEnabledExtensionNames = required_extensions.data();
 
-  // layers
-  std::vector<const char*> layers{};
-  CheckInstanceLayerSupport(layers);
+  // required layers
+  std::vector<const char*> required_layers{};
+  FindInstanceLayers(required_layers);
 
   if (ENABLE_VALIDATION_LAYER) {
-    device_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
-    device_info.ppEnabledLayerNames = layers.data();
+    device_info.enabledLayerCount =
+        static_cast<uint32_t>(required_layers.size());
+    device_info.ppEnabledLayerNames = required_layers.data();
   } else {
     device_info.enabledLayerCount = 0;
   }
@@ -226,16 +230,10 @@ void Application::CreateLogicalDevice() {
                    &present_queue_);
 }
 
-void Application::CheckInstanceExtensionSupport(
-    std::vector<const char*>& required_extensions) {
-  uint32_t available_extension_cnt = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
-                                         nullptr);
-  std::vector<VkExtensionProperties> available_extensions(
-      available_extension_cnt);
-  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
-                                         available_extensions.data());
+void Application::CreateSwapChain() {}
 
+void Application::FindInstanceExtensions(
+    std::vector<const char*>& required_extensions) {
   // glfw required extensions
   uint32_t glfw_ext_cnt = 0;
   const char** glfw_exts = glfwGetRequiredInstanceExtensions(&glfw_ext_cnt);
@@ -251,49 +249,36 @@ void Application::CheckInstanceExtensionSupport(
 
   required_extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-  for (const auto& required : required_extensions) {
-    bool found = false;
-    for (const auto& available : available_extensions) {
-      if (static_cast<std::string>(available.extensionName) ==
-          static_cast<std::string>(required)) {
-        found = true;
-        break;
-      }
-    }
+  // available instance extensions
+  uint32_t available_extension_cnt = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
+                                         nullptr);
+  std::vector<VkExtensionProperties> available_extensions(
+      available_extension_cnt);
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
+                                         available_extensions.data());
 
-    if (!found) {
-      throw std::runtime_error("----- Error::Vulkan: Not supported extension " +
-                               static_cast<std::string>(required) + " -----");
-    }
+  if (!CheckExtensionSupport(available_extensions, required_extensions)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Find not supported instance extension(s) -----");
   }
 }
 
-void Application::CheckInstanceLayerSupport(
+void Application::FindInstanceLayers(
     std::vector<const char*>& required_layers) {
   // add validation layer
   required_layers.push_back("VK_LAYER_KHRONOS_validation");
 
+  // available instance layers
   uint32_t available_layer_cnt = 0;
   vkEnumerateInstanceLayerProperties(&available_layer_cnt, nullptr);
   std::vector<VkLayerProperties> available_layers(available_layer_cnt);
   vkEnumerateInstanceLayerProperties(&available_layer_cnt,
                                      available_layers.data());
 
-  for (const auto& required : required_layers) {
-    bool found = false;
-
-    for (const auto& available : available_layers) {
-      if (static_cast<std::string>(available.layerName) ==
-          static_cast<std::string>(required)) {
-        found = true;
-        break;
-      }
-    }
-
-    if (!found) {
-      throw std::runtime_error("----- Error::Vulkan: Not supported layer " +
-                               static_cast<std::string>(required) + " ----- ");
-    }
+  if (true != CheckLayersSupport(available_layers, required_layers)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Find not supported layer(s) -----");
   }
 }
 
@@ -351,10 +336,50 @@ int Application::EvaluateDevice(VkPhysicalDevice device) {
     score = 0;
   }
 
+  // physical device extension support
+  std::vector<const char*> required_extensions{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#ifdef __APPLE__
+  required_extensions.push_back("VK_KHR_portability_subset");
+#endif
+
+  uint32_t available_extension_cnt = 0;
+  vkEnumerateDeviceExtensionProperties(device, nullptr,
+                                       &available_extension_cnt, nullptr);
+  std::vector<VkExtensionProperties> available_extensions(
+      available_extension_cnt);
+  vkEnumerateDeviceExtensionProperties(
+      device, nullptr, &available_extension_cnt, available_extensions.data());
+
+  if (!CheckExtensionSupport(available_extensions, required_extensions)) {
+    score = 0;
+  }
+
   std::clog << "----- Physical Device: " << device_properties.deviceName
             << ", score: " << score << " -----\n";
 
   return score;
+}
+
+void Application::FindDeviceExtensions(
+    VkPhysicalDevice device, std::vector<const char*>& required_extensions) {
+  required_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+
+#ifdef __APPLE__
+  required_extensions.push_back("VK_KHR_portability_subset");
+#endif
+
+  uint32_t available_extension_cnt = 0;
+  vkEnumerateDeviceExtensionProperties(device, nullptr,
+                                       &available_extension_cnt, nullptr);
+  std::vector<VkExtensionProperties> available_extensions(
+      available_extension_cnt);
+  vkEnumerateDeviceExtensionProperties(
+      device, nullptr, &available_extension_cnt, available_extensions.data());
+
+  if (!CheckExtensionSupport(available_extensions, required_extensions)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Find not supported device extension(s) -----");
+  }
 }
 
 QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
@@ -388,13 +413,29 @@ QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
   return indices;
 }
 
-void Application::CheckDeviceExtensions(
+bool Application::CheckExtensionSupport(
+    std::vector<VkExtensionProperties>& available_extensions,
     std::vector<const char*>& required_extensions) {
-  required_extensions.push_back("VK_KHR_swapchain");
+  std::set<std::string> extensions(required_extensions.begin(),
+                                   required_extensions.end());
 
-#ifdef __APPLE__
-  required_extensions.push_back("VK_KHR_portability_subset");
-#endif
+  for (const auto& extension : available_extensions) {
+    extensions.erase(extension.extensionName);
+  }
+
+  return extensions.empty();
+}
+
+bool Application::CheckLayersSupport(
+    std::vector<VkLayerProperties>& available_layers,
+    std::vector<const char*>& required_layers) {
+  std::set<std::string> layers(required_layers.begin(), required_layers.end());
+
+  for (const auto& layer : available_layers) {
+    layers.erase(layer.layerName);
+  }
+
+  return layers.empty();
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallBack(
