@@ -39,10 +39,22 @@ Application::Application() {
   CreateLogicalDevice();
 }
 
-Application::~Application() {}
+Application::~Application() {
+  vkDestroyDevice(device_, nullptr);
+  vkDestroySurfaceKHR(instance_, surface_, nullptr);
+
+  if (ENABLE_VALIDATION_LAYER) {
+    DestroyDebugUtilsMessengerEXT(instance_, debug_messenger_, nullptr);
+  }
+
+  vkDestroyInstance(instance_, nullptr);
+
+  glfwDestroyWindow(window_);
+  glfwTerminate();
+}
 
 void Application::Run() {
-  while (glfwWindowShouldClose(window_)) {
+  while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
   }
 }
@@ -66,7 +78,7 @@ void Application::CreateInstance() {
 
   VkApplicationInfo app_info{};
   app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pApplicationName = "Ray-Tracing";
+  app_info.pApplicationName = "Playground";
   app_info.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   app_info.pEngineName = "No Engine";
   app_info.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -87,10 +99,9 @@ void Application::CreateInstance() {
   instance_info.ppEnabledExtensionNames = extensions.data();
 
   // layers
+  std::vector<const char*> layers{};
+  CheckInstanceLayerSupport(layers);
   if (ENABLE_VALIDATION_LAYER) {
-    std::vector<const char*> layers{};
-    CheckInstanceLayerSupport(layers);
-
     instance_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
     instance_info.ppEnabledLayerNames = layers.data();
   } else {
@@ -135,6 +146,19 @@ void Application::PickPhysicalDevice() {
         "----- Error::Device: Failed to find GPUs with Vulkan support -----");
   }
 
+  std::vector<VkPhysicalDevice> devices(device_cnt);
+  vkEnumeratePhysicalDevices(instance_, &device_cnt, devices.data());
+
+  std::multimap<int, VkPhysicalDevice> candidates{};
+  for (const auto& device : devices) {
+    int score = EvaluateDevice(device);
+    candidates.insert(std::make_pair(score, device));
+  }
+
+  if (candidates.rbegin()->first > 0) {
+    physical_device_ = candidates.rbegin()->second;
+  }
+
   if (VK_NULL_HANDLE == physical_device_) {
     throw std::runtime_error(
         "----- Error::Device: Failed to find a suitable GPU -----");
@@ -142,33 +166,75 @@ void Application::PickPhysicalDevice() {
 }
 
 void Application::CreateLogicalDevice() {
-  QueueFamilies indices = FindQueueFaimilies(physical_device_);
+  VkDeviceCreateInfo device_info{};
+  device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-  std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
-  std::set<uint32_t> unique_queue_families{indices.graphics_family.value(),
-                                           indices.present_family.value()};
+  queue_faimlies_ = FindQueueFaimilies(physical_device_);
+
+  std::vector<VkDeviceQueueCreateInfo> queue_infos;
+  std::set<uint32_t> unique_queue_families{
+      queue_faimlies_.graphics_family.value(),
+      queue_faimlies_.present_family.value()};
 
   float queue_priority = 1.f;
   for (const auto& family : unique_queue_families) {
-    VkDeviceQueueCreateInfo queue_create_info{};
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = family;
-    queue_create_info.queueCount = 1;
-    queue_create_info.pQueuePriorities = &queue_priority;
+    VkDeviceQueueCreateInfo queue_info{};
+    queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_info.queueFamilyIndex = family;
+    queue_info.queueCount = 1;
+    queue_info.pQueuePriorities = &queue_priority;
 
-    queue_create_infos.push_back(queue_create_info);
+    queue_infos.push_back(queue_info);
   }
 
+  device_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
+  device_info.pQueueCreateInfos = queue_infos.data();
+
+  // physical device features
   VkPhysicalDeviceFeatures physical_device_features{};
+
+  device_info.pEnabledFeatures = &physical_device_features;
+
+  // physical device extensions
+  std::vector<const char*> extensions{};
+  CheckDeviceExtensions(extensions);
+
+  device_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  device_info.ppEnabledExtensionNames = extensions.data();
+
+  // layers
+  std::vector<const char*> layers{};
+  CheckInstanceLayerSupport(layers);
+
+  if (ENABLE_VALIDATION_LAYER) {
+    device_info.enabledLayerCount = static_cast<uint32_t>(layers.size());
+    device_info.ppEnabledLayerNames = layers.data();
+  } else {
+    device_info.enabledLayerCount = 0;
+  }
+
+  if (VK_SUCCESS !=
+      vkCreateDevice(physical_device_, &device_info, nullptr, &device_)) {
+    throw std::runtime_error("Error: Failed to create logical device");
+  }
+
+  // graphics queue
+  vkGetDeviceQueue(device_, queue_faimlies_.graphics_family.value(), 0,
+                   &graphics_queue_);
+  // present queue
+  vkGetDeviceQueue(device_, queue_faimlies_.present_family.value(), 0,
+                   &present_queue_);
 }
 
 void Application::CheckInstanceExtensionSupport(
     std::vector<const char*>& required_extensions) {
-  uint32_t available_ext_cnt = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &available_ext_cnt, nullptr);
-  std::vector<VkExtensionProperties> available_exts(available_ext_cnt);
-  vkEnumerateInstanceExtensionProperties(nullptr, &available_ext_cnt,
-                                         available_exts.data());
+  uint32_t available_extension_cnt = 0;
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
+                                         nullptr);
+  std::vector<VkExtensionProperties> available_extensions(
+      available_extension_cnt);
+  vkEnumerateInstanceExtensionProperties(nullptr, &available_extension_cnt,
+                                         available_extensions.data());
 
   // glfw required extensions
   uint32_t glfw_ext_cnt = 0;
@@ -187,7 +253,7 @@ void Application::CheckInstanceExtensionSupport(
 
   for (const auto& required : required_extensions) {
     bool found = false;
-    for (const auto& available : available_exts) {
+    for (const auto& available : available_extensions) {
       if (static_cast<std::string>(available.extensionName) ==
           static_cast<std::string>(required)) {
         found = true;
@@ -259,6 +325,32 @@ void Application::DestroyDebugUtilsMessengerEXT(
   }
 }
 
+int Application::EvaluateDevice(VkPhysicalDevice device) {
+  // physical device properties
+  VkPhysicalDeviceProperties device_properties{};
+  vkGetPhysicalDeviceProperties(device, &device_properties);
+
+  // physical device features
+  VkPhysicalDeviceFeatures device_features{};
+  vkGetPhysicalDeviceFeatures(device, &device_features);
+
+  int score = 0;
+
+  if (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == device_properties.deviceType) {
+    score += 1000;
+  }
+  score += device_properties.limits.maxImageDimension2D;
+
+  if (!device_features.geometryShader) {
+    score = 1;
+  }
+
+  std::clog << "----- Physical Device: " << device_properties.deviceName
+            << ", score: " << score << " -----\n";
+
+  return score;
+}
+
 QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
   QueueFamilies indices{};
 
@@ -288,6 +380,15 @@ QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
   }
 
   return indices;
+}
+
+void Application::CheckDeviceExtensions(
+    std::vector<const char*>& required_extensions) {
+  required_extensions.push_back("VK_KHR_swapchain");
+
+#ifdef __APPLE__
+  required_extensions.push_back("VK_KHR_portability_subset");
+#endif
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallBack(

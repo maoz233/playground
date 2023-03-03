@@ -83,7 +83,10 @@ class Application {
                                      VkDebugUtilsMessengerEXT debug_messenger,
                                      const VkAllocationCallbacks* allocator);
 
+  int EvaluateDevice(VkPhysicalDevice device);
+
   QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
+  void CheckDeviceExtensions(std::vector<const char*>& required_extensions);
 
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
@@ -98,6 +101,7 @@ class Application {
   VkSurfaceKHR surface_;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_;
+  QueueFamilies queue_faimlies_;
   VkQueue graphics_queue_;
   VkQueue present_queue_;
 };
