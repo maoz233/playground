@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -332,6 +333,35 @@ void Application::CreateImageViews() {
   }
 }
 
+void Application::CreateGraphicsPipeline() {
+  auto vert_shader_code = ReadFile(VERT_SHADER_FILEPATH);
+  auto frag_sahder_code = ReadFile(FRAG_SHADER_FILEPATH);
+
+  VkShaderModule vert_shader_moudle = CreateShaderMoudle(vert_shader_code);
+  VkShaderModule frag_shader_moudle = CreateShaderMoudle(frag_sahder_code);
+
+  // shader stage creation
+  VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
+  vert_shader_stage_info.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  vert_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  vert_shader_stage_info.module = vert_shader_moudle;
+  vert_shader_stage_info.pName = "main";
+
+  VkPipelineShaderStageCreateInfo frag_shader_stage_info{};
+  frag_shader_stage_info.sType =
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  frag_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  frag_shader_stage_info.module = frag_shader_moudle;
+  frag_shader_stage_info.pName = "main";
+
+  VkPipelineShaderStageCreateInfo shader_stage_infos[] = {
+      vert_shader_stage_info, frag_shader_stage_info};
+
+  vkDestroyShaderModule(device_, vert_shader_moudle, nullptr);
+  vkDestroyShaderModule(device_, frag_shader_moudle, nullptr);
+}
+
 void Application::FindInstanceExtensions(
     std::vector<const char*>& required_extensions) {
   // glfw required extensions
@@ -597,6 +627,22 @@ VkExtent2D Application::ChooseSwapExtent(
   }
 }
 
+VkShaderModule Application::CreateShaderMoudle(const std::vector<char>& code) {
+  VkShaderModuleCreateInfo shader_module_info{};
+  shader_module_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+  shader_module_info.codeSize = code.size();
+  shader_module_info.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+  VkShaderModule shader_module;
+  if (vkCreateShaderModule(device_, &shader_module_info, nullptr,
+                           &shader_module) != VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to create shader module -----");
+  }
+
+  return shader_module;
+}
+
 bool Application::CheckExtensionSupport(
     std::vector<VkExtensionProperties>& available_extensions,
     std::vector<const char*>& required_extensions) {
@@ -637,4 +683,23 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallBack(
 
   return VK_FALSE;
 }
+
+std::vector<char> Application::ReadFile(const std::string& filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("----- Error::File: Failed to open file -----");
+  }
+
+  size_t file_size = static_cast<size_t>(file.tellg());
+  std::vector<char> buffer(file_size);
+
+  file.seekg(0);
+  file.read(buffer.data(), file_size);
+
+  file.close();
+
+  return buffer;
+}
+
 }  // namespace playground

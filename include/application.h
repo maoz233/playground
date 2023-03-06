@@ -71,6 +71,7 @@ class Application {
   void CreateLogicalDevice();
   void CreateSwapChain();
   void CreateImageViews();
+  void CreateGraphicsPipeline();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
   void FindInstanceLayers(std::vector<const char*>& required_layers);
@@ -98,6 +99,8 @@ class Application {
       const std::vector<VkPresentModeKHR>& available_present_modes);
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
+  VkShaderModule CreateShaderMoudle(const std::vector<char>& code);
+
   bool CheckExtensionSupport(
       std::vector<VkExtensionProperties>& available_extensions,
       std::vector<const char*>& required_extensions);
@@ -109,6 +112,8 @@ class Application {
                 VkDebugUtilsMessageTypeFlagsEXT message_type,
                 const VkDebugUtilsMessengerCallbackDataEXT* callback_data,
                 void* user_data);
+
+  static std::vector<char> ReadFile(const std::string& filename);
 
  private:
   GLFWwindow* window_;
