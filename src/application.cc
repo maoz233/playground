@@ -49,6 +49,10 @@ Application::Application() {
 }
 
 Application::~Application() {
+  for (auto image_view : swap_chain_image_views_) {
+    vkDestroyImageView(device_, image_view, nullptr);
+  }
+
   vkDestroySwapchainKHR(device_, swap_chain_, nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
@@ -299,6 +303,33 @@ void Application::CreateSwapChain() {
                           swap_chain_images_.data());
   swap_chain_image_format_ = surface_format.format;
   swap_chain_extent_ = extent;
+}
+
+void Application::CreateImageViews() {
+  swap_chain_image_views_.resize(swap_chain_images_.size());
+
+  for (size_t i = 0; i < swap_chain_images_.size(); i++) {
+    VkImageViewCreateInfo image_view_info{};
+    image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    image_view_info.image = swap_chain_images_[i];
+    image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    image_view_info.format = swap_chain_image_format_;
+    image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_view_info.subresourceRange.baseMipLevel = 0;
+    image_view_info.subresourceRange.levelCount = 1;
+    image_view_info.subresourceRange.baseArrayLayer = 0;
+    image_view_info.subresourceRange.layerCount = 1;
+
+    if (VK_SUCCESS != vkCreateImageView(device_, &image_view_info, nullptr,
+                                        &swap_chain_image_views_[i])) {
+      throw std::runtime_error(
+          "----- Error::Vulkan: Failed to create image views -----");
+    }
+  }
 }
 
 void Application::FindInstanceExtensions(

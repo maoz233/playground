@@ -70,6 +70,7 @@ class Application {
   void PickPhysicalDevice();
   void CreateLogicalDevice();
   void CreateSwapChain();
+  void CreateImageViews();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
   void FindInstanceLayers(std::vector<const char*>& required_layers);
@@ -120,9 +121,10 @@ class Application {
   VkQueue graphics_queue_;
   VkQueue present_queue_;
   VkSwapchainKHR swap_chain_;
+  std::vector<VkImage> swap_chain_images_;
   VkFormat swap_chain_image_format_;
   VkExtent2D swap_chain_extent_;
-  std::vector<VkImage> swap_chain_images_;
+  std::vector<VkImageView> swap_chain_image_views_;
 };
 
 }  // namespace playground
