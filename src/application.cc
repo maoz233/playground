@@ -292,6 +292,13 @@ void Application::CreateSwapChain() {
     throw std::runtime_error(
         "----- Error::Vulkan: Failed to create swap chain -----");
   }
+
+  vkGetSwapchainImagesKHR(device_, swap_chain_, &image_count, nullptr);
+  swap_chain_images_.resize(image_count);
+  vkGetSwapchainImagesKHR(device_, swap_chain_, &image_count,
+                          swap_chain_images_.data());
+  swap_chain_image_format_ = surface_format.format;
+  swap_chain_extent_ = extent;
 }
 
 void Application::FindInstanceExtensions(
