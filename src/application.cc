@@ -45,6 +45,7 @@ Application::Application() {
   CreateSurface();
   PickPhysicalDevice();
   CreateLogicalDevice();
+  CreateSwapChain();
 }
 
 Application::~Application() {
@@ -281,12 +282,13 @@ void Application::CreateSwapChain() {
 
   swap_chain_info.preTransform =
       swap_chain_support.capabilities.currentTransform;
+  swap_chain_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   swap_chain_info.presentMode = present_mode;
   swap_chain_info.clipped = VK_TRUE;
   swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
 
-  if (vkCreateSwapchainKHR(device_, &swap_chain_info, nullptr, &swap_chain_) !=
-      VK_SUCCESS) {
+  if (VK_SUCCESS !=
+      vkCreateSwapchainKHR(device_, &swap_chain_info, nullptr, &swap_chain_)) {
     throw std::runtime_error(
         "----- Error::Vulkan: Failed to create swap chain -----");
   }
