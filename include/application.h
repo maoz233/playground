@@ -90,6 +90,13 @@ class Application {
 
   QueueFamilies FindQueueFaimilies(VkPhysicalDevice device);
 
+  SwapChainSupportDetails QuerySwapChainSupoort(VkPhysicalDevice device);
+  VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
+      const std::vector<VkSurfaceFormatKHR>& available_formats);
+  VkPresentModeKHR ChooseSwapPresentMode(
+      const std::vector<VkPresentModeKHR>& available_present_modes);
+  VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
   bool CheckExtensionSupport(
       std::vector<VkExtensionProperties>& available_extensions,
       std::vector<const char*>& required_extensions);

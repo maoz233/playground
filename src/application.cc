@@ -10,7 +10,10 @@
  */
 #include "application.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -24,6 +27,11 @@ namespace playground {
 
 bool QueueFamilies::IsCompleted() {
   return graphics_family.has_value() && present_family.has_value();
+}
+
+bool SwapChainSupportDetails::IsAdequate() {
+  return capabilities.minImageCount > 0 && !formats.empty() &&
+         !present_modes.empty();
 }
 
 Application::Application() {
@@ -40,6 +48,7 @@ Application::Application() {
 }
 
 Application::~Application() {
+  vkDestroySwapchainKHR(device_, swap_chain_, nullptr);
   vkDestroyDevice(device_, nullptr);
   vkDestroySurfaceKHR(instance_, surface_, nullptr);
 
@@ -230,7 +239,58 @@ void Application::CreateLogicalDevice() {
                    &present_queue_);
 }
 
-void Application::CreateSwapChain() {}
+void Application::CreateSwapChain() {
+  SwapChainSupportDetails swap_chain_support =
+      QuerySwapChainSupoort(physical_device_);
+
+  VkSurfaceFormatKHR surface_format =
+      ChooseSwapSurfaceFormat(swap_chain_support.formats);
+  VkPresentModeKHR present_mode =
+      ChooseSwapPresentMode(swap_chain_support.present_modes);
+  VkExtent2D extent = ChooseSwapExtent(swap_chain_support.capabilities);
+
+  uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
+  if (swap_chain_support.capabilities.maxImageCount > 0 &&
+      image_count > swap_chain_support.capabilities.maxImageCount) {
+    image_count = swap_chain_support.capabilities.maxImageCount;
+  }
+
+  VkSwapchainCreateInfoKHR swap_chain_info{};
+  swap_chain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+  swap_chain_info.surface = surface_;
+  swap_chain_info.minImageCount = image_count;
+  swap_chain_info.imageFormat = surface_format.format;
+  swap_chain_info.imageColorSpace = surface_format.colorSpace;
+  swap_chain_info.imageExtent = extent;
+  swap_chain_info.imageArrayLayers = 1;
+  swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+  QueueFamilies indices = FindQueueFaimilies(physical_device_);
+  uint32_t queue_family_indices[] = {indices.graphics_family.value(),
+                                     indices.present_family.value()};
+
+  if (indices.graphics_family != indices.present_family) {
+    swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    swap_chain_info.queueFamilyIndexCount = 2;
+    swap_chain_info.pQueueFamilyIndices = queue_family_indices;
+  } else {
+    swap_chain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swap_chain_info.queueFamilyIndexCount = 0;      // Optional
+    swap_chain_info.pQueueFamilyIndices = nullptr;  // Optional
+  }
+
+  swap_chain_info.preTransform =
+      swap_chain_support.capabilities.currentTransform;
+  swap_chain_info.presentMode = present_mode;
+  swap_chain_info.clipped = VK_TRUE;
+  swap_chain_info.oldSwapchain = VK_NULL_HANDLE;
+
+  if (vkCreateSwapchainKHR(device_, &swap_chain_info, nullptr, &swap_chain_) !=
+      VK_SUCCESS) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to create swap chain -----");
+  }
+}
 
 void Application::FindInstanceExtensions(
     std::vector<const char*>& required_extensions) {
@@ -354,6 +414,13 @@ int Application::EvaluateDevice(VkPhysicalDevice device) {
     score = 0;
   }
 
+  // physical device swap chain support
+  SwapChainSupportDetails details = QuerySwapChainSupoort(device);
+
+  if (!details.IsAdequate()) {
+    score = 0;
+  }
+
   std::clog << "----- Physical Device: " << device_properties.deviceName
             << ", score: " << score << " -----\n";
 
@@ -411,6 +478,83 @@ QueueFamilies Application::FindQueueFaimilies(VkPhysicalDevice device) {
   }
 
   return indices;
+}
+
+SwapChainSupportDetails Application::QuerySwapChainSupoort(
+    VkPhysicalDevice device) {
+  SwapChainSupportDetails details{};
+
+  // basic surface capabilities
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_,
+                                            &details.capabilities);
+
+  // surface formats
+  uint32_t format_cnt = 0;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_cnt, nullptr);
+
+  if (format_cnt) {
+    details.formats.resize(format_cnt);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_cnt,
+                                         details.formats.data());
+  }
+
+  // available present modes
+  uint32_t present_mode_cnt;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &present_mode_cnt,
+                                            nullptr);
+
+  if (present_mode_cnt) {
+    details.present_modes.resize(present_mode_cnt);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(
+        device, surface_, &present_mode_cnt, details.present_modes.data());
+  }
+
+  return details;
+}
+
+VkSurfaceFormatKHR Application::ChooseSwapSurfaceFormat(
+    const std::vector<VkSurfaceFormatKHR>& available_formats) {
+  for (const auto& available : available_formats) {
+    if (available.format == VK_FORMAT_B8G8R8A8_SRGB &&
+        available.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      return available;
+    }
+  }
+
+  return available_formats[0];
+}
+
+VkPresentModeKHR Application::ChooseSwapPresentMode(
+    const std::vector<VkPresentModeKHR>& available_present_modes) {
+  for (const auto& available : available_present_modes) {
+    if (available == VK_PRESENT_MODE_MAILBOX_KHR) {
+      return available;
+    }
+  }
+
+  return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D Application::ChooseSwapExtent(
+    const VkSurfaceCapabilitiesKHR& capabilities) {
+  if (capabilities.currentExtent.width !=
+      std::numeric_limits<uint32_t>::max()) {
+    return capabilities.currentExtent;
+  } else {
+    int width, height;
+    glfwGetFramebufferSize(window_, &width, &height);
+
+    VkExtent2D actual_extent = {static_cast<uint32_t>(width),
+                                static_cast<uint32_t>(height)};
+    actual_extent.width =
+        std::clamp(actual_extent.width, capabilities.minImageExtent.width,
+                   capabilities.maxImageExtent.width);
+    actual_extent.height =
+        std::clamp(actual_extent.height, capabilities.minImageExtent.height,
+                   capabilities.maxImageExtent.height);
+
+    return actual_extent;
+  }
 }
 
 bool Application::CheckExtensionSupport(
