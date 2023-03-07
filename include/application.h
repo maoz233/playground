@@ -76,9 +76,11 @@ class Application {
   void CreateFrameBuffers();
   void CreateCommandPool();
   void CreateCommandBuffer();
+  void CreateSyncObjects();
 
   void RecordCommandBuffer(VkCommandBuffer command_buffer,
                            uint32_t image_index);
+  void DrawFrame();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
   void FindInstanceLayers(std::vector<const char*>& required_layers);
@@ -143,6 +145,9 @@ class Application {
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
   VkCommandPool command_pool_;
   VkCommandBuffer command_buffer_;
+  VkSemaphore image_available_semaphore_;
+  VkSemaphore render_finished_semaphore_;
+  VkFence in_flight_fence_;
 };
 
 }  // namespace playground

@@ -52,9 +52,13 @@ Application::Application() {
   CreateFrameBuffers();
   CreateCommandPool();
   CreateCommandBuffer();
+  CreateSyncObjects();
 }
 
 Application::~Application() {
+  vkDestroySemaphore(device_, image_available_semaphore_, nullptr);
+  vkDestroySemaphore(device_, render_finished_semaphore_, nullptr);
+  vkDestroyFence(device_, in_flight_fence_, nullptr);
   vkDestroyCommandPool(device_, command_pool_, nullptr);
 
   for (auto framebuffer : swap_chain_framebuffers_) {
@@ -86,6 +90,8 @@ Application::~Application() {
 void Application::Run() {
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
+
+    DrawFrame();
   }
 }
 
@@ -598,6 +604,27 @@ void Application::CreateCommandBuffer() {
   }
 }
 
+void Application::CreateSyncObjects() {
+  VkSemaphoreCreateInfo semaphore_info{};
+  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  if (VK_SUCCESS != vkCreateSemaphore(device_, &semaphore_info, nullptr,
+                                      &image_available_semaphore_) ||
+      VK_SUCCESS != vkCreateSemaphore(device_, &semaphore_info, nullptr,
+                                      &render_finished_semaphore_)) {
+    throw std::runtime_error(
+        "Error::Vulkan: Failed to create semaphores -----");
+  }
+
+  VkFenceCreateInfo fence_info{};
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+  if (VK_SUCCESS !=
+      vkCreateFence(device_, &fence_info, nullptr, &in_flight_fence_)) {
+    throw std::runtime_error("Error::Vulkan: Failed to create fence -----");
+  }
+}
+
 void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
                                       uint32_t image_index) {
   VkCommandBufferBeginInfo begin_info{};
@@ -650,6 +677,8 @@ void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
         "----- Error::Vulkan: Failed to record command buffer -----");
   }
 }
+
+void Application::DrawFrame() {}
 
 void Application::FindInstanceExtensions(
     std::vector<const char*>& required_extensions) {
