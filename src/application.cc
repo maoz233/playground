@@ -704,6 +704,14 @@ void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
 }
 
 void Application::RecreateSwapChain() {
+  int width = 0, height = 0;
+  glfwGetFramebufferSize(window_, &width, &height);
+
+  while (width == 0 || height == 0) {
+    glfwGetFramebufferSize(window_, &width, &height);
+    glfwWaitEvents();
+  }
+
   vkDeviceWaitIdle(device_);
 
   CleanupSwapChain();
