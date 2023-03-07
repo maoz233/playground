@@ -83,6 +83,8 @@ class Application {
   void DrawFrame();
   void RecordCommandBuffer(VkCommandBuffer command_buffer,
                            uint32_t image_index);
+  void RecreateSwapChain();
+  void CleanupSwapChain();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
   void FindInstanceLayers(std::vector<const char*>& required_layers);
