@@ -47,6 +47,7 @@ Application::Application() {
   PickPhysicalDevice();
   CreateLogicalDevice();
   CreateSwapChain();
+  CreateImageViews();
   CreateRenderPass();
   CreateGraphicsPipeline();
   CreateFrameBuffers();
@@ -93,6 +94,8 @@ void Application::Run() {
 
     DrawFrame();
   }
+
+  vkDeviceWaitIdle(device_);
 }
 
 void Application::CreateWindow() {
@@ -374,12 +377,22 @@ void Application::CreateRenderPass() {
   subpass_desc.colorAttachmentCount = 1;
   subpass_desc.pColorAttachments = &color_attachment_ref;
 
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
   VkRenderPassCreateInfo render_pass_info{};
   render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
   render_pass_info.attachmentCount = 1;
   render_pass_info.pAttachments = &color_attachment;
   render_pass_info.subpassCount = 1;
   render_pass_info.pSubpasses = &subpass_desc;
+  render_pass_info.dependencyCount = 1;
+  render_pass_info.pDependencies = &dependency;
 
   if (vkCreateRenderPass(device_, &render_pass_info, nullptr, &render_pass_) !=
       VK_SUCCESS) {
@@ -618,6 +631,7 @@ void Application::CreateSyncObjects() {
 
   VkFenceCreateInfo fence_info{};
   fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   if (VK_SUCCESS !=
       vkCreateFence(device_, &fence_info, nullptr, &in_flight_fence_)) {
@@ -678,7 +692,59 @@ void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
   }
 }
 
-void Application::DrawFrame() {}
+void Application::DrawFrame() {
+  vkWaitForFences(device_, 1, &in_flight_fence_, VK_TRUE, UINT64_MAX);
+  vkResetFences(device_, 1, &in_flight_fence_);
+
+  uint32_t image_index;
+  vkAcquireNextImageKHR(device_, swap_chain_, UINT64_MAX,
+                        image_available_semaphore_, VK_NULL_HANDLE,
+                        &image_index);
+
+  vkResetCommandBuffer(command_buffer_, 0);
+  RecordCommandBuffer(command_buffer_, image_index);
+
+  VkSubmitInfo submit_info{};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore wait_semaphores[] = {image_available_semaphore_};
+  VkPipelineStageFlags wait_stages[] = {
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submit_info.waitSemaphoreCount = 1;
+  submit_info.pWaitSemaphores = wait_semaphores;
+  submit_info.pWaitDstStageMask = wait_stages;
+
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &command_buffer_;
+
+  VkSemaphore signal_semaphores[] = {render_finished_semaphore_};
+  submit_info.signalSemaphoreCount = 1;
+  submit_info.pSignalSemaphores = signal_semaphores;
+
+  if (VK_SUCCESS !=
+      vkQueueSubmit(graphics_queue_, 1, &submit_info, in_flight_fence_)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to submit draw command buffer -----");
+  }
+
+  VkPresentInfoKHR present_info{};
+  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+  present_info.waitSemaphoreCount = 1;
+  present_info.pWaitSemaphores = signal_semaphores;
+
+  VkSwapchainKHR swap_chains[] = {swap_chain_};
+  present_info.swapchainCount = 1;
+  present_info.pSwapchains = swap_chains;
+  present_info.pImageIndices = &image_index;
+
+  present_info.pResults = nullptr;
+
+  if (VK_SUCCESS != vkQueuePresentKHR(present_queue_, &present_info)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to present image -----");
+  }
+}
 
 void Application::FindInstanceExtensions(
     std::vector<const char*>& required_extensions) {
