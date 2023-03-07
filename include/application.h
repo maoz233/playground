@@ -24,6 +24,8 @@ const int WIDTH = 800;
 const int HEIGHT = 600;
 const std::string TITLE{"Playground"};
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 #ifdef NDEBUG
 const bool ENABLE_VALIDATION_LAYER = false;
 #else
@@ -75,7 +77,7 @@ class Application {
   void CreateGraphicsPipeline();
   void CreateFrameBuffers();
   void CreateCommandPool();
-  void CreateCommandBuffer();
+  void CreateCommandBuffers();
   void CreateSyncObjects();
 
   void DrawFrame();
@@ -144,10 +146,11 @@ class Application {
   VkPipeline graphics_pipeline_;
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
   VkCommandPool command_pool_;
-  VkCommandBuffer command_buffer_;
-  VkSemaphore image_available_semaphore_;
-  VkSemaphore render_finished_semaphore_;
-  VkFence in_flight_fence_;
+  std::vector<VkCommandBuffer> command_buffers_;
+  std::vector<VkSemaphore> image_available_semaphores_;
+  std::vector<VkSemaphore> render_finished_semaphores_;
+  std::vector<VkFence> in_flight_fences_;
+  int current_frame = 0;
 };
 
 }  // namespace playground
