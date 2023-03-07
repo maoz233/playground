@@ -74,6 +74,7 @@ class Application {
   void CreateRenderPass();
   void CreateGraphicsPipeline();
   void CreateFrameBuffers();
+  void CreateCommandPool();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
   void FindInstanceLayers(std::vector<const char*>& required_layers);
@@ -136,6 +137,7 @@ class Application {
   VkPipelineLayout pipeline_layout_;
   VkPipeline graphics_pipeline_;
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
+  VkCommandPool command_pool_;
 };
 
 }  // namespace playground

@@ -50,9 +50,12 @@ Application::Application() {
   CreateRenderPass();
   CreateGraphicsPipeline();
   CreateFrameBuffers();
+  CreateCommandPool();
 }
 
 Application::~Application() {
+  vkDestroyCommandPool(device_, command_pool_, nullptr);
+
   for (auto framebuffer : swap_chain_framebuffers_) {
     vkDestroyFramebuffer(device_, framebuffer, nullptr);
   }
@@ -282,11 +285,11 @@ void Application::CreateSwapChain() {
   swap_chain_info.imageArrayLayers = 1;
   swap_chain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  QueueFamilies indices = FindQueueFaimilies(physical_device_);
-  uint32_t queue_family_indices[] = {indices.graphics_family.value(),
-                                     indices.present_family.value()};
+  uint32_t queue_family_indices[] = {queue_faimlies_.graphics_family.value(),
+                                     queue_faimlies_.present_family.value()};
 
-  if (indices.graphics_family != indices.present_family) {
+  if (queue_faimlies_.graphics_family.value() !=
+      queue_faimlies_.present_family.value()) {
     swap_chain_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     swap_chain_info.queueFamilyIndexCount = 2;
     swap_chain_info.pQueueFamilyIndices = queue_family_indices;
@@ -564,6 +567,19 @@ void Application::CreateFrameBuffers() {
       throw std::runtime_error(
           "----- Error::Vulkan: Failed to create framebuffer -----");
     }
+  }
+}
+
+void Application::CreateCommandPool() {
+  VkCommandPoolCreateInfo pool_info{};
+  pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  pool_info.queueFamilyIndex = queue_faimlies_.graphics_family.value();
+
+  if (VK_SUCCESS !=
+      vkCreateCommandPool(device_, &pool_info, nullptr, &command_pool_)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to create command pool -----");
   }
 }
 
