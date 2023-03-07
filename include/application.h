@@ -71,6 +71,7 @@ class Application {
   void CreateLogicalDevice();
   void CreateSwapChain();
   void CreateImageViews();
+  void CreateRenderPass();
   void CreateGraphicsPipeline();
 
   void FindInstanceExtensions(std::vector<const char*>& required_extensions);
@@ -130,6 +131,9 @@ class Application {
   VkFormat swap_chain_image_format_;
   VkExtent2D swap_chain_extent_;
   std::vector<VkImageView> swap_chain_image_views_;
+  VkRenderPass render_pass_;
+  VkPipelineLayout pipeline_layout_;
+  VkPipeline graphics_pipeline_;
 };
 
 }  // namespace playground
