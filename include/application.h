@@ -120,6 +120,8 @@ class Application {
   bool CheckLayersSupport(std::vector<VkLayerProperties>& available_layers,
                           std::vector<const char*>& required_layers);
 
+  static void FramebufferResizeCallback(GLFWwindow* window, int width,
+                                        int height);
   static VKAPI_ATTR VkBool32 VKAPI_CALL
   DebugCallBack(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity,
                 VkDebugUtilsMessageTypeFlagsEXT message_type,
@@ -153,6 +155,7 @@ class Application {
   std::vector<VkSemaphore> render_finished_semaphores_;
   std::vector<VkFence> in_flight_fences_;
   int current_frame = 0;
+  bool framebuffer_resized = false;
 };
 
 }  // namespace playground

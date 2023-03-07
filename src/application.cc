@@ -105,6 +105,9 @@ void Application::CreateWindow() {
     throw std::runtime_error(
         "----- Error::Window: Failed to create the GLFW window -----");
   }
+
+  glfwSetWindowUserPointer(window_, this);
+  glfwSetFramebufferSizeCallback(window_, FramebufferResizeCallback);
 }
 
 void Application::CreateInstance() {
@@ -790,7 +793,8 @@ void Application::DrawFrame() {
 
   result = vkQueuePresentKHR(present_queue_, &present_info);
 
-  if (VK_ERROR_OUT_OF_DATE_KHR == result || VK_SUBOPTIMAL_KHR == result) {
+  if (VK_ERROR_OUT_OF_DATE_KHR == result || VK_SUBOPTIMAL_KHR == result ||
+      framebuffer_resized) {
     RecreateSwapChain();
   } else if (VK_SUCCESS != result) {
     throw std::runtime_error(
@@ -1106,6 +1110,14 @@ bool Application::CheckLayersSupport(
   }
 
   return layers.empty();
+}
+
+void Application::FramebufferResizeCallback(GLFWwindow* window, int width,
+                                            int height) {
+  std::clog << "----- Window resized with width: " << width
+            << ", height: " << height << std::endl;
+  auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+  app->framebuffer_resized = true;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Application::DebugCallBack(
