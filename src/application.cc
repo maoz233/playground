@@ -835,15 +835,6 @@ void Application::RecreateSwapChain() {
   CreateSwapChain();
   CreateImageViews();
   CreateFrameBuffers();
-
-  // imgui: recreate window
-  ImGui_ImplVulkan_SetMinImageCount(
-      static_cast<uint32_t>(swap_chain_images_.size()));
-  ImGui_ImplVulkanH_CreateOrResizeWindow(
-      instance_, physical_device_, device_, &imgui_window_,
-      queue_faimlies_.graphics_family.value(), nullptr,
-      swap_chain_extent_.width, swap_chain_extent_.height,
-      static_cast<uint32_t>(swap_chain_images_.size()));
 }
 
 void Application::CleanupSwapChain() {
