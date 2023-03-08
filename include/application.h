@@ -14,6 +14,11 @@
 #include <string>
 #include <vector>
 
+#define PLAYGROUND_IMGUI_
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -78,6 +83,7 @@ class Application {
   void CreateFrameBuffers();
   void CreateCommandPool();
   void CreateCommandBuffers();
+  void CreateDescriptorPool();
   void CreateSyncObjects();
 
   void DrawFrame();
@@ -120,6 +126,9 @@ class Application {
   bool CheckLayersSupport(std::vector<VkLayerProperties>& available_layers,
                           std::vector<const char*>& required_layers);
 
+  VkCommandBuffer BeginSingleTimeCommands();
+  void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
+
   static void FramebufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
   static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -146,16 +155,20 @@ class Application {
   VkExtent2D swap_chain_extent_;
   std::vector<VkImageView> swap_chain_image_views_;
   VkRenderPass render_pass_;
+  VkRenderPass imgui_render_pass_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline graphics_pipeline_;
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
+  VkDescriptorPool descriptor_pool_;
   std::vector<VkSemaphore> image_available_semaphores_;
   std::vector<VkSemaphore> render_finished_semaphores_;
   std::vector<VkFence> in_flight_fences_;
   int current_frame = 0;
   bool framebuffer_resized = false;
+
+  ImGui_ImplVulkanH_Window imgui_window_;
 };
 
 }  // namespace playground
