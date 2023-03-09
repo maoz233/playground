@@ -19,7 +19,7 @@ endif()
 
 file(GLOB SRC_FILES ${PROJECT_SOURCE_DIR}/src/*.cc)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/fonts)
 
 # GLFW3
 find_package(glfw3 CONFIG REQUIRED)

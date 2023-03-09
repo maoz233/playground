@@ -169,6 +169,7 @@ class Application {
   bool framebuffer_resized = false;
 
   ImGui_ImplVulkanH_Window imgui_window_;
+  ImGuiIO imgui_io_;
 };
 
 }  // namespace playground

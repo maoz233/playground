@@ -25,6 +25,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
+#include <roboto.regular.embed>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -100,10 +102,20 @@ void Application::Run() {
   // imgui: setup context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
+  imgui_io_ = ImGui::GetIO();
+  (void)imgui_io_;
+  imgui_io_.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  imgui_io_.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  imgui_io_.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
   // imgui: setup style
   ImGui::StyleColorsDark();
+
+  ImGuiStyle& style = ImGui::GetStyle();
+  if (imgui_io_.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    style.WindowRounding = 0.0f;
+    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+  }
 
   // imgui: setup platform/render bindings
   ImGui_ImplGlfw_InitForVulkan(window_, true);
@@ -165,10 +177,18 @@ void Application::Run() {
 
   ImGui_ImplVulkan_Init(&init_info, imgui_render_pass_);
 
+  // imgui: load default font
+  ImFontConfig font_config;
+  font_config.FontDataOwnedByAtlas = false;
+  ImFont* roboto_font = imgui_io_.Fonts->AddFontFromMemoryTTF(
+      (void*)roboto_regular, sizeof(roboto_regular), 20.0f, &font_config);
+  imgui_io_.FontDefault = roboto_font;
+
   // imgui: upload fonts to the GPU
   VkCommandBuffer command_buffer = BeginSingleTimeCommands();
   ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
   EndSingleTimeCommands(command_buffer);
+  ImGui_ImplVulkan_DestroyFontUploadObjects();
 
   while (!glfwWindowShouldClose(window_)) {
     glfwPollEvents();
@@ -860,6 +880,12 @@ void Application::DrawFrame() {
   ImGui::NewFrame();
   ImGui::ShowDemoWindow();
   ImGui::Render();
+
+  // imgui: update and render additional Platform Windows
+  if (imgui_io_.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+  }
 
   // grab an image from swap chain, and then signaled image available semaphore
   uint32_t image_index;
