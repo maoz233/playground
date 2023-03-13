@@ -36,3 +36,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+
+# stb
+find_path(STB_INCLUDE_DIRS "stb_c_lexer.h")
+target_include_directories(${PROJECT_NAME} PRIVATE ${STB_INCLUDE_DIRS})
