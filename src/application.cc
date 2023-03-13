@@ -56,6 +56,7 @@ Application::Application() {
   CreateSwapChain();
   CreateImageViews();
   CreateRenderPass();
+  CreatePipelineLayout();
   CreateGraphicsPipeline();
   CreateFrameBuffers();
   CreateCommandPool();
@@ -82,7 +83,6 @@ Application::~Application() {
 
   vkDestroyPipeline(device_, graphics_pipeline_, nullptr);
   vkDestroyPipelineLayout(device_, pipeline_layout_, nullptr);
-  vkDestroyRenderPass(device_, imgui_render_pass_, nullptr);
   vkDestroyRenderPass(device_, render_pass_, nullptr);
 
   vkDestroyDevice(device_, nullptr);
@@ -102,17 +102,17 @@ void Application::Run() {
   // imgui: setup context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  imgui_io_ = ImGui::GetIO();
-  (void)imgui_io_;
-  imgui_io_.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  imgui_io_.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  imgui_io_.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+  ImGuiIO& imgui_io = ImGui::GetIO();
+  (void)imgui_io;
+  imgui_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  imgui_io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  imgui_io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
   // imgui: setup style
   ImGui::StyleColorsDark();
 
   ImGuiStyle& style = ImGui::GetStyle();
-  if (imgui_io_.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  if (imgui_io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
     style.WindowRounding = 0.0f;
     style.Colors[ImGuiCol_WindowBg].w = 1.0f;
   }
@@ -132,57 +132,14 @@ void Application::Run() {
   init_info.ImageCount = static_cast<uint32_t>(swap_chain_images_.size());
   init_info.CheckVkResultFn = nullptr;
 
-  // create imgui renderpass
-  VkAttachmentDescription attachment = {};
-  attachment.format = swap_chain_image_format_;
-  attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-  VkAttachmentReference color_attachment = {};
-  color_attachment.attachment = 0;
-  color_attachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-  VkSubpassDescription subpass = {};
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &color_attachment;
-
-  VkSubpassDependency dependency = {};
-  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.srcAccessMask = 0;  // or VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  VkRenderPassCreateInfo info = {};
-  info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  info.attachmentCount = 1;
-  info.pAttachments = &attachment;
-  info.subpassCount = 1;
-  info.pSubpasses = &subpass;
-  info.dependencyCount = 1;
-  info.pDependencies = &dependency;
-  if (VK_SUCCESS !=
-      vkCreateRenderPass(device_, &info, nullptr, &imgui_render_pass_)) {
-    throw std::runtime_error(
-        "----- Error::Vulkan:  Failed to create Dear ImGui's render pass "
-        "-----");
-  }
-
-  ImGui_ImplVulkan_Init(&init_info, imgui_render_pass_);
+  ImGui_ImplVulkan_Init(&init_info, render_pass_);
 
   // imgui: load default font
   ImFontConfig font_config;
   font_config.FontDataOwnedByAtlas = false;
-  ImFont* roboto_font = imgui_io_.Fonts->AddFontFromMemoryTTF(
+  ImFont* roboto_font = imgui_io.Fonts->AddFontFromMemoryTTF(
       (void*)roboto_regular, sizeof(roboto_regular), 20.0f, &font_config);
-  imgui_io_.FontDefault = roboto_font;
+  imgui_io.FontDefault = roboto_font;
 
   // imgui: upload fonts to the GPU
   VkCommandBuffer command_buffer = BeginSingleTimeCommands();
@@ -505,12 +462,28 @@ void Application::CreateRenderPass() {
   }
 }
 
+void Application::CreatePipelineLayout() {
+  // pipeline layout
+  VkPipelineLayoutCreateInfo pipeline_layout_info{};
+  pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipeline_layout_info.setLayoutCount = 0;             // Optional
+  pipeline_layout_info.pSetLayouts = nullptr;          // Optional
+  pipeline_layout_info.pushConstantRangeCount = 0;     // Optional
+  pipeline_layout_info.pPushConstantRanges = nullptr;  // Optional
+
+  if (VK_SUCCESS != vkCreatePipelineLayout(device_, &pipeline_layout_info,
+                                           nullptr, &pipeline_layout_)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to create pipeline layout -----");
+  }
+}
+
 void Application::CreateGraphicsPipeline() {
   auto vert_shader_code = ReadFile(VERT_SHADER_FILEPATH);
-  auto frag_sahder_code = ReadFile(FRAG_SHADER_FILEPATH);
+  auto frag_shader_code = ReadFile(FRAG_SHADER_FILEPATH);
 
   VkShaderModule vert_shader_moudle = CreateShaderMoudle(vert_shader_code);
-  VkShaderModule frag_shader_moudle = CreateShaderMoudle(frag_sahder_code);
+  VkShaderModule frag_shader_moudle = CreateShaderMoudle(frag_shader_code);
 
   // shader stage creation
   VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
@@ -628,20 +601,6 @@ void Application::CreateGraphicsPipeline() {
   color_blend_state_info.blendConstants[1] = 0.0f;  // Optional
   color_blend_state_info.blendConstants[2] = 0.0f;  // Optional
   color_blend_state_info.blendConstants[3] = 0.0f;  // Optional
-
-  // pipeline layout
-  VkPipelineLayoutCreateInfo pipeline_layout_info{};
-  pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipeline_layout_info.setLayoutCount = 0;             // Optional
-  pipeline_layout_info.pSetLayouts = nullptr;          // Optional
-  pipeline_layout_info.pushConstantRangeCount = 0;     // Optional
-  pipeline_layout_info.pPushConstantRanges = nullptr;  // Optional
-
-  if (VK_SUCCESS != vkCreatePipelineLayout(device_, &pipeline_layout_info,
-                                           nullptr, &pipeline_layout_)) {
-    throw std::runtime_error(
-        "----- Error::Vulkan: Failed to create pipeline layout -----");
-  }
 
   VkGraphicsPipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -882,7 +841,9 @@ void Application::DrawFrame() {
   ImGui::Render();
 
   // imgui: update and render additional Platform Windows
-  if (imgui_io_.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+  ImGuiIO& imgui_io = ImGui::GetIO();
+  (void)imgui_io;
+  if (imgui_io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
     ImGui::UpdatePlatformWindows();
     ImGui::RenderPlatformWindowsDefault();
   }
@@ -906,7 +867,7 @@ void Application::DrawFrame() {
 
   // make sure command buffer is ready to use
   vkResetCommandBuffer(command_buffers_[current_frame], 0);
-  // create and record command buffer
+  // // create and record command buffer
   RecordCommandBuffer(command_buffers_[current_frame], image_index);
 
   // wait image available semaphore, then signaled render finished semaphore

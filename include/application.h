@@ -23,6 +23,8 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "image.h"
+
 namespace playground {
 
 const int WIDTH = 800;
@@ -79,6 +81,7 @@ class Application {
   void CreateSwapChain();
   void CreateImageViews();
   void CreateRenderPass();
+  void CreatePipelineLayout();
   void CreateGraphicsPipeline();
   void CreateFrameBuffers();
   void CreateCommandPool();
@@ -155,7 +158,6 @@ class Application {
   VkExtent2D swap_chain_extent_;
   std::vector<VkImageView> swap_chain_image_views_;
   VkRenderPass render_pass_;
-  VkRenderPass imgui_render_pass_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline graphics_pipeline_;
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
@@ -167,9 +169,6 @@ class Application {
   std::vector<VkFence> in_flight_fences_;
   int current_frame = 0;
   bool framebuffer_resized = false;
-
-  ImGui_ImplVulkanH_Window imgui_window_;
-  ImGuiIO imgui_io_;
 };
 
 }  // namespace playground
