@@ -87,6 +87,7 @@ Application::Application() {
   CreateCommandPool();
   CreateCommandBuffers();
   CreateVertexBuffer();
+  CreateIndexBuffer();
   CreateDescriptorPool();
   CreateSyncObjects();
 }
@@ -100,6 +101,8 @@ Application::~Application() {
 
   vkDestroyBuffer(device_, vertex_buffer_, nullptr);
   vkFreeMemory(device_, vertex_buffer_memory_, nullptr);
+  vkDestroyBuffer(device_, index_buffer_, nullptr);
+  vkFreeMemory(device_, index_buffer_memory_, nullptr);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device_, image_available_semaphores_[i], nullptr);
@@ -719,15 +722,59 @@ void Application::CreateCommandBuffers() {
 void Application::CreateVertexBuffer() {
   VkDeviceSize buffer_size = sizeof(vertices_[0]) * vertices_.size();
 
-  CreateBuffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+  // staging buffer: host visible
+  VkBuffer staging_buffer{};
+  VkDeviceMemory staging_buffer_memory{};
+
+  CreateBuffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-               vertex_buffer_, vertex_buffer_memory_);
+               staging_buffer, staging_buffer_memory);
+
+  // map data memory
+  void* data;
+  vkMapMemory(device_, staging_buffer_memory, 0, buffer_size, 0, &data);
+  memcpy(data, vertices_.data(), static_cast<size_t>(buffer_size));
+  vkUnmapMemory(device_, staging_buffer_memory);
+
+  // vertext buffer: device local
+  CreateBuffer(
+      buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertex_buffer_,
+      vertex_buffer_memory_);
+
+  // transfer vertex data to device local buffer
+  CopyBuffer(staging_buffer, vertex_buffer_, buffer_size);
+
+  vkDestroyBuffer(device_, staging_buffer, nullptr);
+  vkFreeMemory(device_, staging_buffer_memory, nullptr);
+}
+
+void Application::CreateIndexBuffer() {
+  VkDeviceSize buffer_size = sizeof(indices_[0]) * indices_.size();
+
+  VkBuffer staging_buffer;
+  VkDeviceMemory staging_buffer_memory;
+  CreateBuffer(buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+               staging_buffer, staging_buffer_memory);
 
   void* data;
-  vkMapMemory(device_, vertex_buffer_memory_, 0, buffer_size, 0, &data);
-  memcpy(data, vertices_.data(), static_cast<size_t>(buffer_size));
-  vkUnmapMemory(device_, vertex_buffer_memory_);
+  vkMapMemory(device_, staging_buffer_memory, 0, buffer_size, 0, &data);
+  memcpy(data, indices_.data(), static_cast<size_t>(buffer_size));
+  vkUnmapMemory(device_, staging_buffer_memory);
+
+  CreateBuffer(
+      buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, index_buffer_, index_buffer_memory_);
+
+  CopyBuffer(staging_buffer, index_buffer_, buffer_size);
+
+  vkDestroyBuffer(device_, staging_buffer, nullptr);
+  vkFreeMemory(device_, staging_buffer_memory, nullptr);
 }
 
 void Application::CreateDescriptorPool() {
@@ -835,8 +882,10 @@ void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
   VkBuffer vertex_buffers[] = {vertex_buffer_};
   VkDeviceSize offsets[] = {0};
   vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+  vkCmdBindIndexBuffer(command_buffer, index_buffer_, 0, VK_INDEX_TYPE_UINT16);
 
-  vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices_.size()), 1, 0, 0);
+  vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0,
+                   0, 0);
 
   // imgui: record draw data and funcs into command buffer
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
@@ -1360,6 +1409,46 @@ void Application::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
   }
 
   vkBindBufferMemory(device_, buffer, buffer_memory, 0);
+}
+
+void Application::CopyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer,
+                             VkDeviceSize size) {
+  VkCommandBufferAllocateInfo alloc_info{};
+  alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  alloc_info.commandPool = command_pool_;
+  alloc_info.commandBufferCount = 1;
+
+  VkCommandBuffer command_buffer;
+  if (VK_SUCCESS !=
+      vkAllocateCommandBuffers(device_, &alloc_info, &command_buffer)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to allocate command buffers -----");
+  }
+
+  VkCommandBufferBeginInfo begin_info{};
+  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(command_buffer, &begin_info);
+
+  VkBufferCopy copy_region{};
+  copy_region.srcOffset = 0;  // Optional
+  copy_region.dstOffset = 0;  // Optional
+  copy_region.size = size;
+  vkCmdCopyBuffer(command_buffer, src_buffer, dst_buffer, 1, &copy_region);
+
+  vkEndCommandBuffer(command_buffer);
+
+  VkSubmitInfo submit_info{};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &command_buffer;
+
+  vkQueueSubmit(graphics_queue_, 1, &submit_info, VK_NULL_HANDLE);
+  vkQueueWaitIdle(graphics_queue_);
+
+  vkFreeCommandBuffers(device_, command_pool_, 1, &command_buffer);
 }
 
 void Application::FramebufferResizeCallback(GLFWwindow* window, int width,

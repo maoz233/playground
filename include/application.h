@@ -98,6 +98,7 @@ class Application {
   void CreateCommandPool();
   void CreateCommandBuffers();
   void CreateVertexBuffer();
+  void CreateIndexBuffer();
   void CreateDescriptorPool();
   void CreateSyncObjects();
 
@@ -150,6 +151,7 @@ class Application {
   void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
                     VkMemoryPropertyFlags properties, VkBuffer& buffer,
                     VkDeviceMemory& buffer_memory);
+  void CopyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
 
   static void FramebufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
@@ -193,6 +195,8 @@ class Application {
 
   VkBuffer vertex_buffer_;
   VkDeviceMemory vertex_buffer_memory_;
+  VkBuffer index_buffer_;
+  VkDeviceMemory index_buffer_memory_;
 
   VkDescriptorPool descriptor_pool_;
 
@@ -203,9 +207,11 @@ class Application {
   int current_frame = 0;
   bool framebuffer_resized = false;
 
-  const std::vector<Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                         {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0};
 };
 
 }  // namespace playground
