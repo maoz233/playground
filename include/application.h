@@ -73,6 +73,12 @@ struct Vertex {
   GetAttributeDescriptions();
 };
 
+struct UniformBufferObject {
+  alignas(16) glm::mat4 model;
+  alignas(16) glm::mat4 view;
+  alignas(16) glm::mat4 projection;
+};
+
 class Application {
  public:
   Application();
@@ -91,15 +97,18 @@ class Application {
   void CreateLogicalDevice();
   void CreateSwapChain();
   void CreateImageViews();
-  void CreateFrameBuffers();
   void CreateRenderPass();
+  void CreateDescriptorPool();
+  void CreateDescriptorSetLayout();
+  void CreateDescriptorSets();
   void CreatePipelineLayout();
   void CreateGraphicsPipeline();
+  void CreateFrameBuffers();
   void CreateCommandPool();
   void CreateCommandBuffers();
   void CreateVertexBuffer();
   void CreateIndexBuffer();
-  void CreateDescriptorPool();
+  void CreateUniformBuffers();
   void CreateSyncObjects();
 
   void DrawFrame();
@@ -153,6 +162,8 @@ class Application {
                     VkDeviceMemory& buffer_memory);
   void CopyBuffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
 
+  void UpdateUniformBuffer(uint32_t current_image);
+
   static void FramebufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
   static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -185,6 +196,9 @@ class Application {
 
   VkRenderPass render_pass_;
 
+  VkDescriptorPool descriptor_pool_;
+  std::vector<VkDescriptorSet> descriptor_sets_;
+  VkDescriptorSetLayout descriptor_set_layout_;
   VkPipelineLayout pipeline_layout_;
   VkPipeline graphics_pipeline_;
 
@@ -198,7 +212,9 @@ class Application {
   VkBuffer index_buffer_;
   VkDeviceMemory index_buffer_memory_;
 
-  VkDescriptorPool descriptor_pool_;
+  std::vector<VkBuffer> uniform_buffers_;
+  std::vector<VkDeviceMemory> uniform_buffers_memory_;
+  std::vector<void*> uniform_buffers_mapped_;
 
   std::vector<VkSemaphore> image_available_semaphores_;
   std::vector<VkSemaphore> render_finished_semaphores_;
