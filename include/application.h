@@ -10,6 +10,7 @@
  */
 #ifndef PLAYGROUND_INCLUDE_APPLICATION_H_
 #define PLAYGROUND_INCLUDE_APPLICATION_H_
+#include <array>
 #include <optional>
 #include <string>
 #include <vector>
@@ -23,7 +24,8 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-#include "image.h"
+#define PLAYGROUND_GLM_
+#include <glm/glm.hpp>
 
 namespace playground {
 
@@ -62,6 +64,15 @@ struct SwapChainSupportDetails {
   inline bool IsAdequate();
 };
 
+struct Vertex {
+  glm::vec2 pos;
+  glm::vec3 color;
+
+  static VkVertexInputBindingDescription GetBindingDescription();
+  static std::array<VkVertexInputAttributeDescription, 2>
+  GetAttributeDescriptions();
+};
+
 class Application {
  public:
   Application();
@@ -80,12 +91,13 @@ class Application {
   void CreateLogicalDevice();
   void CreateSwapChain();
   void CreateImageViews();
+  void CreateFrameBuffers();
   void CreateRenderPass();
   void CreatePipelineLayout();
   void CreateGraphicsPipeline();
-  void CreateFrameBuffers();
   void CreateCommandPool();
   void CreateCommandBuffers();
+  void CreateVertexBuffer();
   void CreateDescriptorPool();
   void CreateSyncObjects();
 
@@ -132,6 +144,13 @@ class Application {
   VkCommandBuffer BeginSingleTimeCommands();
   void EndSingleTimeCommands(VkCommandBuffer commandBuffer);
 
+  uint32_t FindMemoryType(uint32_t type_filter,
+                          VkMemoryPropertyFlags properties);
+
+  void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                    VkMemoryPropertyFlags properties, VkBuffer& buffer,
+                    VkDeviceMemory& buffer_memory);
+
   static void FramebufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
   static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -144,31 +163,49 @@ class Application {
 
  private:
   GLFWwindow* window_;
+
   VkInstance instance_;
   VkDebugUtilsMessengerEXT debug_messenger_;
   VkSurfaceKHR surface_;
   VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
   VkDevice device_;
+
   QueueFamilies queue_faimlies_;
   VkQueue graphics_queue_;
   VkQueue present_queue_;
+
   VkSwapchainKHR swap_chain_;
   std::vector<VkImage> swap_chain_images_;
   VkFormat swap_chain_image_format_;
   VkExtent2D swap_chain_extent_;
+
   std::vector<VkImageView> swap_chain_image_views_;
+
   VkRenderPass render_pass_;
+
   VkPipelineLayout pipeline_layout_;
   VkPipeline graphics_pipeline_;
+
   std::vector<VkFramebuffer> swap_chain_framebuffers_;
+
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
+
+  VkBuffer vertex_buffer_;
+  VkDeviceMemory vertex_buffer_memory_;
+
   VkDescriptorPool descriptor_pool_;
+
   std::vector<VkSemaphore> image_available_semaphores_;
   std::vector<VkSemaphore> render_finished_semaphores_;
   std::vector<VkFence> in_flight_fences_;
+
   int current_frame = 0;
   bool framebuffer_resized = false;
+
+  const std::vector<Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                                         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 };
 
 }  // namespace playground

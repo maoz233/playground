@@ -11,6 +11,7 @@
 #include "application.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -42,6 +43,30 @@ bool SwapChainSupportDetails::IsAdequate() {
          !present_modes.empty();
 }
 
+VkVertexInputBindingDescription Vertex::GetBindingDescription() {
+  VkVertexInputBindingDescription binding_desc{};
+  binding_desc.binding = 0;
+  binding_desc.stride = sizeof(Vertex);
+  binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+  return binding_desc;
+}
+
+std::array<VkVertexInputAttributeDescription, 2>
+Vertex::GetAttributeDescriptions() {
+  std::array<VkVertexInputAttributeDescription, 2> attribute_descs{};
+  attribute_descs[0].binding = 0;
+  attribute_descs[0].location = 0;
+  attribute_descs[0].format = VK_FORMAT_R32G32_SFLOAT;
+  attribute_descs[0].offset = offsetof(Vertex, pos);
+  attribute_descs[1].binding = 0;
+  attribute_descs[1].location = 1;
+  attribute_descs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+  attribute_descs[1].offset = offsetof(Vertex, color);
+
+  return attribute_descs;
+}
+
 Application::Application() {
   CreateWindow();
   CreateInstance();
@@ -61,6 +86,7 @@ Application::Application() {
   CreateFrameBuffers();
   CreateCommandPool();
   CreateCommandBuffers();
+  CreateVertexBuffer();
   CreateDescriptorPool();
   CreateSyncObjects();
 }
@@ -71,6 +97,9 @@ Application::~Application() {
   ImGui::DestroyContext();
 
   CleanupSwapChain();
+
+  vkDestroyBuffer(device_, vertex_buffer_, nullptr);
+  vkFreeMemory(device_, vertex_buffer_memory_, nullptr);
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
     vkDestroySemaphore(device_, image_available_semaphores_[i], nullptr);
@@ -418,6 +447,29 @@ void Application::CreateImageViews() {
   }
 }
 
+void Application::CreateFrameBuffers() {
+  swap_chain_framebuffers_.resize(swap_chain_image_views_.size());
+
+  for (size_t i = 0; i < swap_chain_image_views_.size(); i++) {
+    VkImageView attachments[] = {swap_chain_image_views_[i]};
+
+    VkFramebufferCreateInfo framebuffer_info{};
+    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebuffer_info.renderPass = render_pass_;
+    framebuffer_info.attachmentCount = 1;
+    framebuffer_info.pAttachments = attachments;
+    framebuffer_info.width = swap_chain_extent_.width;
+    framebuffer_info.height = swap_chain_extent_.height;
+    framebuffer_info.layers = 1;
+
+    if (VK_SUCCESS != vkCreateFramebuffer(device_, &framebuffer_info, nullptr,
+                                          &swap_chain_framebuffers_[i])) {
+      throw std::runtime_error(
+          "----- Error::Vulkan: Failed to create framebuffer -----");
+    }
+  }
+}
+
 void Application::CreateRenderPass() {
   VkAttachmentDescription color_attachment{};
   color_attachment.format = swap_chain_image_format_;
@@ -513,13 +565,17 @@ void Application::CreateGraphicsPipeline() {
   dynamicState.pDynamicStates = dynamic_states.data();
 
   // vertex input
+  auto binding_desc = Vertex::GetBindingDescription();
+  auto attribute_descs = Vertex::GetAttributeDescriptions();
+
   VkPipelineVertexInputStateCreateInfo vertex_input_info{};
   vertex_input_info.sType =
       VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertex_input_info.vertexBindingDescriptionCount = 0;
-  vertex_input_info.pVertexBindingDescriptions = nullptr;  // Optional
-  vertex_input_info.vertexAttributeDescriptionCount = 0;
-  vertex_input_info.pVertexAttributeDescriptions = nullptr;  // Optional
+  vertex_input_info.vertexBindingDescriptionCount = 1;
+  vertex_input_info.pVertexBindingDescriptions = &binding_desc;
+  vertex_input_info.vertexAttributeDescriptionCount =
+      static_cast<uint32_t>(attribute_descs.size());
+  vertex_input_info.pVertexAttributeDescriptions = attribute_descs.data();
 
   // input assembly
   VkPipelineInputAssemblyStateCreateInfo input_assembly_info{};
@@ -630,29 +686,6 @@ void Application::CreateGraphicsPipeline() {
   vkDestroyShaderModule(device_, frag_shader_moudle, nullptr);
 }
 
-void Application::CreateFrameBuffers() {
-  swap_chain_framebuffers_.resize(swap_chain_image_views_.size());
-
-  for (size_t i = 0; i < swap_chain_image_views_.size(); i++) {
-    VkImageView attachments[] = {swap_chain_image_views_[i]};
-
-    VkFramebufferCreateInfo framebuffer_info{};
-    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebuffer_info.renderPass = render_pass_;
-    framebuffer_info.attachmentCount = 1;
-    framebuffer_info.pAttachments = attachments;
-    framebuffer_info.width = swap_chain_extent_.width;
-    framebuffer_info.height = swap_chain_extent_.height;
-    framebuffer_info.layers = 1;
-
-    if (VK_SUCCESS != vkCreateFramebuffer(device_, &framebuffer_info, nullptr,
-                                          &swap_chain_framebuffers_[i])) {
-      throw std::runtime_error(
-          "----- Error::Vulkan: Failed to create framebuffer -----");
-    }
-  }
-}
-
 void Application::CreateCommandPool() {
   VkCommandPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -681,6 +714,20 @@ void Application::CreateCommandBuffers() {
     throw std::runtime_error(
         "Error::Vulkan: Failed to allocate command buffers -----");
   }
+}
+
+void Application::CreateVertexBuffer() {
+  VkDeviceSize buffer_size = sizeof(vertices_[0]) * vertices_.size();
+
+  CreateBuffer(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+               vertex_buffer_, vertex_buffer_memory_);
+
+  void* data;
+  vkMapMemory(device_, vertex_buffer_memory_, 0, buffer_size, 0, &data);
+  memcpy(data, vertices_.data(), static_cast<size_t>(buffer_size));
+  vkUnmapMemory(device_, vertex_buffer_memory_);
 }
 
 void Application::CreateDescriptorPool() {
@@ -785,7 +832,11 @@ void Application::RecordCommandBuffer(VkCommandBuffer command_buffer,
   scissor.extent = swap_chain_extent_;
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
-  vkCmdDraw(command_buffer, 3, 1, 0, 0);
+  VkBuffer vertex_buffers[] = {vertex_buffer_};
+  VkDeviceSize offsets[] = {0};
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+
+  vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices_.size()), 1, 0, 0);
 
   // imgui: record draw data and funcs into command buffer
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
@@ -1261,6 +1312,54 @@ void Application::EndSingleTimeCommands(VkCommandBuffer command_buffer) {
   vkQueueWaitIdle(graphics_queue_);
 
   vkFreeCommandBuffers(device_, command_pool_, 1, &command_buffer);
+}
+
+uint32_t Application::FindMemoryType(uint32_t type_filter,
+                                     VkMemoryPropertyFlags properties) {
+  VkPhysicalDeviceMemoryProperties mem_properties;
+  vkGetPhysicalDeviceMemoryProperties(physical_device_, &mem_properties);
+
+  for (uint32_t i = 0; i < mem_properties.memoryTypeCount; ++i) {
+    if (type_filter & (1 << i) && (mem_properties.memoryTypes[i].propertyFlags &
+                                   properties) == properties) {
+      return i;
+    }
+  }
+
+  throw std::runtime_error(
+      "----- Error::Vulkan: Failed to find suitable memory type -----");
+}
+
+void Application::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage,
+                               VkMemoryPropertyFlags properties,
+                               VkBuffer& buffer,
+                               VkDeviceMemory& buffer_memory) {
+  VkBufferCreateInfo buffer_info{};
+  buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  buffer_info.size = size;
+  buffer_info.usage = usage;
+  buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  if (VK_SUCCESS != vkCreateBuffer(device_, &buffer_info, nullptr, &buffer)) {
+    throw std::runtime_error("Error::Vulkan: Failed to create buffer -----");
+  }
+
+  VkMemoryRequirements mem_requirements{};
+  vkGetBufferMemoryRequirements(device_, buffer, &mem_requirements);
+
+  VkMemoryAllocateInfo alloc_info{};
+  alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  alloc_info.allocationSize = mem_requirements.size;
+  alloc_info.memoryTypeIndex =
+      FindMemoryType(mem_requirements.memoryTypeBits, properties);
+
+  if (VK_SUCCESS !=
+      vkAllocateMemory(device_, &alloc_info, nullptr, &buffer_memory)) {
+    throw std::runtime_error(
+        "----- Error::Vulkan: Failed to allocate buffer memory -----");
+  }
+
+  vkBindBufferMemory(device_, buffer, buffer_memory, 0);
 }
 
 void Application::FramebufferResizeCallback(GLFWwindow* window, int width,
