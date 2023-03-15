@@ -42,9 +42,11 @@ const bool ENABLE_VALIDATION_LAYER = true;
 #endif
 
 #ifdef _WIN32
+const std::string TEXTURE_FILEPATH{"../../images/texture.jpg"};
 const std::string VERT_SHADER_FILEPATH{"../../shaders/triangle.vert.spv"};
 const std::string FRAG_SHADER_FILEPATH{"../../shaders/triangle.frag.spv"};
 #else
+const std::string TEXTURE_FILEPATH{"../images/texture.jpg"};
 const std::string VERT_SHADER_FILEPATH{"../shaders/triangle.vert.spv"};
 const std::string FRAG_SHADER_FILEPATH{"../shaders/triangle.frag.spv"};
 #endif
@@ -106,6 +108,7 @@ class Application {
   void CreateFrameBuffers();
   void CreateCommandPool();
   void CreateCommandBuffers();
+  void CreateTextureImage();
   void CreateVertexBuffer();
   void CreateIndexBuffer();
   void CreateUniformBuffers();
@@ -164,6 +167,17 @@ class Application {
 
   void UpdateUniformBuffer(uint32_t current_image);
 
+  void CreateImage(uint32_t width, uint32_t height, VkFormat format,
+                   VkImageTiling tiling, VkImageUsageFlags usage,
+                   VkMemoryPropertyFlags properties, VkImage& image,
+                   VkDeviceMemory& image_memory);
+
+  void TransitionImageLayout(VkImage image, VkImageLayout old_layout,
+                             VkImageLayout new_layout);
+
+  void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
+                         uint32_t height);
+
   static void FramebufferResizeCallback(GLFWwindow* window, int width,
                                         int height);
   static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -207,6 +221,8 @@ class Application {
   VkCommandPool command_pool_;
   std::vector<VkCommandBuffer> command_buffers_;
 
+  VkImage texture_image_;
+  VkDeviceMemory texture_image_memory_;
   VkBuffer vertex_buffer_;
   VkDeviceMemory vertex_buffer_memory_;
   VkBuffer index_buffer_;
